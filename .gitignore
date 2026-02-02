@@ -1,0 +1,30 @@
+# Archivos binarios grandes
+*.pkl
+*.joblib
+*.h5
+*.png
+*.jpg
+*.jpeg
+
+# Datos sensibles
+config.py
+*.env
+secrets.py
+credentials.json
+
+# Archivos locales grandes
+extraccion_historica.json
+games_final.json
+*.ipynb_checkpoints/
+__pycache__/
+*.pyc
+
+# Entornos virtuales
+venv/
+env/
+.venv/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
