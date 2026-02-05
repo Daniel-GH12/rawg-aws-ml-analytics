@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+
+# Datos pesados
+data/
+*.csv
+
+# Claves
+*.pem
+*.ppk
+
+# Basura de AWS EC2
+nohup.out
+swapfile
