@@ -284,21 +284,32 @@ def transformar_datos_completo(datos, verbose = False):
     # Platforms: dimensión + bridge    
     if not df_platforms_list.empty:
         df_platforms = (
-            df_platforms_list[["platform_id", "platform_name", "released_at"]]
+            df_platforms_list[["platform_id", "platform_name"]]
             .dropna(subset=["platform_id"])
             .drop_duplicates(subset=["platform_id"])
             .sort_values("platform_id")
             .reset_index(drop=True)
         )
+        df_platforms = pd.DataFrame({
+        "platform_id": pd.Series(dtype="Int64"),
+        "platform_name": pd.Series(dtype="string"),
+        })
+        # Bridge game_platforms: conserva released_at consistente
         df_game_platforms = (
-            df_platforms_list[["game_id", "platform_id"]]
+            df_platforms_list[["game_id", "platform_id", "released_at"]]
             .dropna(subset=["game_id", "platform_id"])
-            .drop_duplicates(subset=["game_id", "platform_id"])
+            .sort_values(["game_id", "platform_id", "released_at"])  # ordena para elegir
+            .drop_duplicates(subset=["game_id", "platform_id"], keep="last")
             .reset_index(drop=True)
         )
+        df_game_platforms = pd.DataFrame({
+        "game_id": pd.Series(dtype="Int64"),
+        "platform_id": pd.Series(dtype="Int64"),
+        "released_at": pd.Series(dtype="string"),
+        })
     else:
-        df_platforms = pd.DataFrame(columns=["platform_id", "platform_name", "released_at"])
-        df_game_platforms = pd.DataFrame(columns=["game_id", "platform_id"])
+        df_platforms = pd.DataFrame(columns=["platform_id", "platform_name"])
+        df_game_platforms = pd.DataFrame(columns=["game_id", "platform_id", "released_at"])
 
     # Genres: dimension + bridge
     if not df_genres_list.empty:
