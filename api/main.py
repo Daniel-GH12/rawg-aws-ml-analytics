@@ -7,13 +7,13 @@ import uvicorn
 import os
 import psycopg2
 import google.generativeai as genai
-
 import matplotlib.pyplot as plt
 import seaborn as sns
 import io
+import re
 from fastapi.responses import StreamingResponse
 
-# CONFIGURACIÓN
+# --- CONFIGURACIÓN ---
 DB_CONFIG = {
     "host": "data-rawg.cfsieqiau5qy.eu-north-1.rds.amazonaws.com",
     "database": "postgres",
@@ -22,25 +22,25 @@ DB_CONFIG = {
     "port": "5432"
 }
 
-# Configuración Gemini
-genai.configure(api_key="AIzaSyBpMiEPkM1khLwMiOIBtOh6-9ZFiZoq7oU")
+# Configuración Gemini (Se usa para ambos endpoints de lenguaje natural)
+genai.configure(api_key="AIzaSyBYO-mhkqcwA5jOprPTyYz4CEzU0DtCXXY")
 gemini_model = genai.GenerativeModel('models/gemini-2.5-flash')
 
-# INICIALIZAR APP
-app = FastAPI(title="RAWG Games API")
+# --- INICIALIZAR APP ---
+app = FastAPI(title="RAWG Games API - XGBoost + Gemini")
 
-# CARGAR MODELO XGBOOST
-MODEL_PATH = "./models/game_predictor.json"
-COLUMNS_PATH = "./models/model_columns.pkl"
+# --- CARGAR MODELO XGBOOST ---
+MODEL_PATH = "./api/models/game_predictor.json"
+COLUMNS_PATH = "./api/models/model_columns.pkl"
 
 if not os.path.exists(MODEL_PATH) or not os.path.exists(COLUMNS_PATH):
-    raise RuntimeError("No se encontraron los archivos del modelo XGBoost.")
+    raise RuntimeError("No se han encontrado los archivos del modelo XGBoost.")
 
 xgb_model = xgb.XGBClassifier()
 xgb_model.load_model(MODEL_PATH)
 model_columns = joblib.load(COLUMNS_PATH)
 
-# SCHEMAS Pydantic
+# --- SCHEMAS ---
 class GameData(BaseModel):
     playtime: float
     suggestions_count: float
@@ -53,10 +53,11 @@ class GameData(BaseModel):
 class Question(BaseModel):
     text: str
 
-# ENDPOINTS
+# --- ENDPOINTS ---
+
 @app.get("/")
 def home():
-    return {"message": "API RAWG v1.0 - Gemini + XGBoost"}
+    return {"message": "API RAWG v1.0"}
 
 @app.post("/predict")
 def predict(data: GameData):
@@ -64,12 +65,10 @@ def predict(data: GameData):
         input_dict = data.dict()
         input_df = pd.DataFrame([input_dict])
         
-        # Procesar Tags
         top_tags = ['Singleplayer', 'Multiplayer', 'Atmospheric', 'Great Soundtrack', 'Open World']
         for tag in top_tags:
             input_df[f'tag_{tag}'] = 1 if tag in input_dict['tags'] else 0
         
-        # Dummies
         genres_dummies = input_df['genres'].str.get_dummies(sep=',')
         platforms_dummies = input_df['platforms'].str.get_dummies(sep=',')
         developers_dummies = input_df['developers'].str.get_dummies(sep=',')
@@ -98,96 +97,80 @@ def predict(data: GameData):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+esquema_completo = """
+ESTRUCTURA DE LA BASE DE DATOS (PostgreSQL):
+1. games (game_id, game_name, game_released, game_rating, playtime, suggestions_count)
+   - Tabla principal de juegos.
+2. developers (developer_id, developer_name)
+3. genres (genre_id, genre_name)
+4. platforms (platform_id, platform_name)
+5. games_status (game_id, yet, owned, beaten, toplay, dropped, playing)
+   - Contiene contadores numéricos de usuarios para cada estado. No hay una columna 'status'.
+6. TABLAS INTERMEDIAS (Relaciones):
+   - games_developers (game_id, developer_id)
+   - games_genres (game_id, genre_id)
+   - games_platforms (game_id, platform_id)
+
+REGLAS CRÍTICAS DE SQL:
+- Usa ILIKE para comparaciones de texto (ej: game_name ILIKE '%Witcher%').
+- Para filtrar por género, desarrollador o plataforma, DEBES hacer JOIN con la tabla intermedia correspondiente.
+- NO uses CTEs (WITH...AS). Usa consultas SELECT directas.
+- Si la pregunta pide 'los mejores', ordena por game_rating DESC.
+- Si pide 'los más populares' o 'los que más tiene la gente', usa la columna 'owned' de games_status.
+- Responde SOLO el código SQL, sin bloques markdown ```sql ni texto adicional.
+"""
+
 @app.post("/ask-text")
-def ask_db(question: Question):
+def ask_text(question: Question):
     try:
-        esquema = """
-        Tablas:
-        - games (game_id, game_name, game_released, game_rating, playtime, suggestions_count)
-        - developers (developer_id, developer_name)
-        - genres (genre_id, genre_name)
-        - platforms (platform_id, platform_name)
-        - games_status (game_id, yet, owned, beaten, toplay, dropped, playing)
-        Relaciones: games_developers, games_genres, games_platforms
-        """
-
-        prompt = f"{esquema}\nTarea: SQL de PostgreSQL para: '{question.text}'\nReglas: Solo SQL, usa ILIKE, sin ```sql."
-
+        prompt = f"{esquema_completo}\nTarea: SQL para responder: '{question.text}'\nSQL: SELECT"
         response = gemini_model.generate_content(prompt)
-        sql_query = response.text.strip().replace("```sql", "").replace("```", "").replace(";", "")
+        
+        # Limpieza por si acaso
+        sql_query = response.text.strip().replace("```sql", "").replace("```", "").split(";")[0].strip()
+        if not sql_query.upper().startswith("SELECT"):
+            sql_query = "SELECT " + sql_query
 
         conn = psycopg2.connect(**DB_CONFIG)
-        cur = conn.cursor()
-        cur.execute(sql_query)
-        result = cur.fetchall()
-        cur.close()
-        conn.close()
-
-        return {"question": question.text, "sql": sql_query, "data": result}
-    except Exception as e:
-        return {"error": str(e)}
-    
-@app.post("/ask-visual")
-def ask_visual(question: Question):
-    try:
-        # Prompt ultra estricto
-        prompt = f"""
-        Base de datos PostgreSQL:
-        - games (game_id, game_name)
-        - genres (genre_id, genre_name)
-        - games_genres (game_id, genre_id)
-        - platforms, developers, etc.
-        
-        Tarea: SQL para "{question.text}"
-        Reglas:
-        - Responde SOLO con el código SQL.
-        - NO incluyas explicaciones, ni notas, ni bloques de código ```sql.
-        - Máximo 15 resultados.
-        """
-        
-        response = gemini_model.generate_content(prompt)
-        raw_sql = response.text.strip()
-
-        # LIMPIEZA DE SEGURIDAD (Por si Gemini ignora las reglas)
-        # Buscamos dónde empieza el SELECT y dónde termina el SQL
-        import re
-        sql_match = re.search(r"(SELECT.*)", raw_sql, re.IGNORECASE | re.DOTALL)
-        if sql_match:
-            sql_query = sql_match.group(1).split(';')[0].strip()
-        else:
-            sql_query = raw_sql # Si no encuentra SELECT, enviamos lo que hay (fallback)
-
-        # Obtener datos con Pandas
-        conn = psycopg2.connect(**DB_CONFIG)
-        # Usamos read_sql_query porque es directo para gráficos
         df = pd.read_sql_query(sql_query, conn)
         conn.close()
 
-        if df.empty:
-            return {"error": "No hay datos", "sql_intentado": sql_query}
+        return {"question": question.text, "sql": sql_query, "results": df.to_dict(orient="records")}
+    except Exception as e:
+        return {"error": str(e), "sql_intentado": sql_query if 'sql_query' in locals() else "N/A"}
 
-        # Generar el gráfico
-        plt.figure(figsize=(12, 6))
-        # Usamos la primera columna para X y la segunda para Y
-        sns.barplot(data=df, x=df.columns[0], y=df.columns[1], palette="magma")
+@app.post("/ask-visual")
+def ask_visual(question: Question):
+    try:
+        prompt = f"{esquema_completo}\nTarea: Generar SQL con exactamente 2 COLUMNAS (Eje X y Eje Y) para: '{question.text}'\nSQL: SELECT"
+        response = gemini_model.generate_content(prompt)
         
-        plt.title(f"Visualización: {question.text}", fontsize=15)
+        sql_query = response.text.strip().replace("```sql", "").replace("```", "").split(";")[0].strip()
+        if not sql_query.upper().startswith("SELECT"):
+            sql_query = "SELECT " + sql_query
+
+        conn = psycopg2.connect(**DB_CONFIG)
+        df = pd.read_sql_query(sql_query, conn)
+        conn.close()
+
+        if df.empty: return {"error": "No hay datos"}
+
+        plt.figure(figsize=(12, 6))
+        # Seleccionamos automáticamente la columna de texto para X y la numérica para Y
+        sns.barplot(x=df.iloc[:, 0], y=df.iloc[:, 1], data=df, palette="coolwarm")
+        plt.title(f"Visualización: {question.text}")
         plt.xticks(rotation=45, ha='right')
         plt.tight_layout()
 
-        # Guardar en memoria y enviar
         buf = io.BytesIO()
         plt.savefig(buf, format="png")
         buf.seek(0)
         plt.close()
-
         return StreamingResponse(buf, media_type="image/png")
-
     except Exception as e:
-        return {"error": str(e), "sql_raw": raw_sql if 'raw_sql' in locals() else "N/A"}
-
-    except Exception as e:
-        return {"error": str(e)}
+        return {"error": str(e), "sql": sql_query if 'sql_query' in locals() else "N/A"}
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000) ## Correr en http://127.0.0.1:8000/docs
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+## Correr en local en http://127.0.0.1:8000/docs

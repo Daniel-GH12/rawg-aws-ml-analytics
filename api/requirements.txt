@@ -9,6 +9,7 @@ numpy
 xgboost
 joblib
 scikit-learn
+requests
 
 # IA y Lenguaje Natural
 google-generativeai
