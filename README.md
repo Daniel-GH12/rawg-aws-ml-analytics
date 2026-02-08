@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # 🎮 RAWG Game Success Predictor & Intelligent Analytics
 
 Este proyecto es una solución **End-to-End** de Ingeniería de Datos y Machine Learning. Integra la extracción automatizada de datos desde la API de RAWG, su almacenamiento y procesamiento en la nube de AWS, y la exposición de una API inteligente potenciada por Inteligencia Artificial (Gemini).
@@ -59,6 +58,9 @@ La API expone tres servicios críticos:
 
 Instalación de dependencias: 
 <pre>bash pip install -r api/requirements.txt</pre>
+
+Lanzamiento en local:
+<pre>bash http://127.0.0.1:8000/docs</pre>
 
 Lanzamiento en segundo plano (Inmortal):
 <pre>bash nohup python3 -m uvicorn api.main:app --host 0.0.0.0 --port 8000 &</pre>
