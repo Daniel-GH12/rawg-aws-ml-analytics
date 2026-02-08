@@ -30,8 +30,8 @@ gemini_model = genai.GenerativeModel('models/gemini-2.5-flash')
 app = FastAPI(title="RAWG Games API - XGBoost + Gemini")
 
 # --- CARGAR MODELO XGBOOST ---
-MODEL_PATH = "./api/models/game_predictor.json"
-COLUMNS_PATH = "./api/models/model_columns.pkl"
+MODEL_PATH = "./fase_02/api/models/game_predictor.json"
+COLUMNS_PATH = "./fase_02/api/models/model_columns.pkl"
 
 if not os.path.exists(MODEL_PATH) or not os.path.exists(COLUMNS_PATH):
     raise RuntimeError("No se han encontrado los archivos del modelo XGBoost.")
