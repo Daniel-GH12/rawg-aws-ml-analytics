@@ -36,4 +36,6 @@ lambda-deployment/
 
 data/raw/
 
-
+data/raw/extraccion_historica.csv
+data/raw/extraccion_historica.json
+data/raw/extraccion_historica.csv
