@@ -1,21 +1,19 @@
-# Archivos binarios grandes
-*.pkl
-*.joblib
+# Archivos binarios TEMPORALES (no excluye el modelo final)
 *.h5
-*.png
-*.jpg
-*.jpeg
+*.joblib
 
-# Datos sensibles
-config.py
+# Datos SENSIBLES (claves reales)
 *.env
 secrets.py
 credentials.json
 
-# Archivos locales grandes
+# Archivos locales grandes (ya están en S3)
 extraccion_historica.json
 games_final.json
-*.ipynb_checkpoints/
+juegos_incremental_*.json
+
+# Carpetas de caché
+.ipynb_checkpoints/
 __pycache__/
 *.pyc
 
@@ -28,3 +26,14 @@ env/
 .vscode/
 .idea/
 *.swp
+
+# Sistemas operativos
+.DS_Store
+Thumbs.db
+
+# Lambda deployment (¡EXCLUIR!)
+lambda-deployment/
+
+data/raw/extraccion_historica.csv
+
+
