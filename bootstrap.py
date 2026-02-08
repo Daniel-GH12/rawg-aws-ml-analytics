@@ -6,4 +6,5 @@ p = Path.cwd().resolve()
 while p != p.parent and not (p / "utils").exists():
     p = p.parent
 
-sys.path.insert(0, str(p))
+if str(p) not in sys.path:
+    sys.path.insert(0, str(p))
