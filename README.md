@@ -11,7 +11,7 @@ El proyecto implementa un flujo completo de datos:
 
 ---
 
-## 📂 Estructura del Proyecto
+## 📂 Estructura del Proyecto de la Fase 02
 
 <pre>
 RAWG_ML_PROJECT/
@@ -54,13 +54,13 @@ La API expone tres servicios críticos:
 3.  **Visualización Inteligente (/ask-visual):** Generación de reportes gráficos automáticos basados en la data de RAWG.
 
 
-## ⚙️ Guía de Ejecución en AWS EC2
+## ⚙️ Guía de Ejecución
 
 Instalación de dependencias: 
 <pre>bash pip install -r api/requirements.txt</pre>
 
 Lanzamiento en local:
-<pre>bash http://127.0.0.1:8000/docs</pre>
+<pre>http://127.0.0.1:8000/docs</pre>
 
-Lanzamiento en segundo plano (Inmortal):
-<pre>bash nohup python3 -m uvicorn api.main:app --host 0.0.0.0 --port 8000 &</pre>
+Lanzamiento en AWS EC2:
+<pre>https://bit.ly/rawg-fastapi</pre>
