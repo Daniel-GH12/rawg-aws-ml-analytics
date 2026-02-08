@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🎮 RAWG Game Success Predictor & Intelligent Analytics
 
 Este proyecto es una solución **End-to-End** de Ingeniería de Datos y Machine Learning. Integra la extracción automatizada de datos desde la API de RAWG, su almacenamiento y procesamiento en la nube de AWS, y la exposición de una API inteligente potenciada por Inteligencia Artificial (Gemini).
