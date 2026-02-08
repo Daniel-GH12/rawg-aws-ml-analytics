@@ -1,0 +1,22 @@
+# Servidor y API
+fastapi
+uvicorn
+pydantic
+
+# Ciencia de Datos y ML
+pandas
+numpy
+xgboost
+joblib
+scikit-learn
+requests
+
+# IA y Lenguaje Natural
+google-generativeai
+
+# Base de Datos
+psycopg2-binary
+
+# Visualización (Gráficos)
+matplotlib
+seaborn
