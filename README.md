@@ -11,7 +11,7 @@ El proyecto implementa un flujo completo de datos:
 
 ---
 
-## 📂 Estructura del Proyecto de la Fase 02
+## 📂 Estructura del Proyecto
 
 <pre>
 RAWG_ML_PROJECT/
@@ -24,8 +24,9 @@ RAWG_ML_PROJECT/
 │
 ├── infraestructure/                    # Infraestructura Cloud y Persistencia
 │   ├── aws_lambdas/                    # Funciones Serverless para el flujo ETL
-│   │   ├── lambda_extraction.py        # Extracción RAWG -> S3/RDS
-│   │   └── lambda_transformation.py    # Transformación y limpieza de datos
+        ├── extraction_masiva.py        # Extracción masiva de datos de la API
+│   │   ├── extract_rawg_data.py        # Extracción diaria de datos
+│   │   └── rawg_s3_to_rds_loader.py    # Envío de datos a un bucket S3 de AWS
 │   └── sql/                            # Scripts de base de datos
 │       └── create_tables.sql           # DDL para la estructura en AWS RDS (PostgreSQL)
 │
@@ -34,7 +35,7 @@ RAWG_ML_PROJECT/
 │   └── train_model.py                  # Script de entrenamiento y exportación del modelo XGBoost
 │
 ├── data/                               # Almacenamiento de datos locales (Ignorado en Git)
-│   └── raw_dataset.csv                 # Dataset crudo para entrenamiento
+│   └── raw_dataset.csv                 # Dataset para entrenamiento
 │
 └── .gitignore                          # Exclusión de archivos (Secrets, venv, datos pesados y logs)
 </pre>
@@ -59,8 +60,8 @@ La API expone tres servicios críticos:
 Instalación de dependencias: 
 <pre>bash pip install -r api/requirements.txt</pre>
 
-Lanzamiento en local:
+Lanzamiento de fastAPI en local:
 <pre>http://127.0.0.1:8000/docs</pre>
 
-Lanzamiento en AWS EC2:
+Lanzamiento de fastAPI en AWS EC2:
 <pre>https://bit.ly/rawg-fastapi</pre>
