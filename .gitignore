@@ -34,6 +34,6 @@ Thumbs.db
 # Lambda deployment (¡EXCLUIR!)
 lambda-deployment/
 
-data/raw/extraccion_historica.csv
+data/raw/
 
 
