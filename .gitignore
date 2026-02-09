@@ -13,3 +13,13 @@ data/
 # Basura de AWS EC2
 nohup.out
 swapfile
+
+# Jupyter
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+
+# FastAPI temp (si no va en proyecto final)
+FastAPI/
+
+# Docs locales
+docs/
