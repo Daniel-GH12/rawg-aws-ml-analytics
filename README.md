@@ -25,23 +25,23 @@ El proyecto implementa un flujo completo de datos:
 
 <pre>
 RAWG_ML_PROJECT/
-├── api/                                # Núcleo de la aplicación FastAPI (Desplegado en EC2)
-│   ├── main.py                         # Lógica de endpoints, integración de Gemini y XGBoost
-│   ├── requirements.txt                # Dependencias de producción
+├── ETL/                                # Pipeline de datos y scripts de ingestión
+│   ├── 01_init_rds_schema.ipynb         # Inicialización del esquema en RDS
+│   ├── 02_rawg_full_extractor_lambda.py # Lambda para extracción masiva
+│   ├── 03_rawg_full_extraction_pipeline.py # Orquestación completa del ETL
+│   ├── 04_rawg_extractor_lambda.py      # Extracción incremental diaria
+│   ├── 05_rawg_loader_lambda.py         # Carga de datos en PostgreSQL
+│   └── create_tables.sql               # Creación de tablas en la base de datos
+│
+├── api/                                # Núcleo de la aplicación FastAPI (EC2)
+│   ├── main.py                         # Endpoints, integración de Gemini y XGBoost
+│   ├── requirements.txt                # Dependencias del servicio
 │   └── models/                         # Artefactos del modelo entrenado
-│       ├── game_predictor.json         # Modelo XGBoost listo para inferencia
+│       ├── game_predictor.json         # Modelo XGBoost para inferencia
 │       └── model_columns.pkl           # Columnas del dataset serializadas
 │
-├── ETL/                                # Pipeline de datos y scripts de ingestión
-│   ├── 01_init_rds_schema.ipynb         # Inicialización del esquema
-│   ├── 02_rawg_full_extractor_lambda.py
-│   ├── 03_rawg_full_extraction_pipeline.py
-│   ├── 04_rawg_extractor_lambda.py
-│   ├── 05_rawg_loader_lambda.py
-│   └── create_tables.sql               # Creación de tablas en PostgreSQL
-│
 ├── scripts_entrenamiento/              # Pipeline de Machine Learning
-│   ├── data_fetcher.py                 # Obtención de datos de entrenamiento
+│   ├── data_fetcher.py                 # Obtención y preparación de datos
 │   └── train_model.py                  # Entrenamiento y exportación del modelo
 │
 ├── .gitignore                          # Exclusión de archivos temporales y sensibles
@@ -53,7 +53,7 @@ RAWG_ML_PROJECT/
 ## 🧠 Stack Tecnológico
 
 **Backend**
-- Python 3.9+
+- Python
 - FastAPI
 - Uvicorn
 
@@ -85,3 +85,10 @@ La API expone tres servicios principales:
 
 3. **Visualización Inteligente (`/ask-visual`)**  
    Generación automática de gráficos y reportes basados en datos RAWG.
+
+---
+
+ ## Acceso a la API en Producción
+
+La API desplegada en AWS EC2 está disponible en:
+https://bit.ly/rawg-fastapi
