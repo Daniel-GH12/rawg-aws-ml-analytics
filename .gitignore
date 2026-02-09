@@ -4,6 +4,10 @@ data/
 *.pem
 # Notebooks personales de cristina
 *_cris.ipynb
+
+#Ficheros personales de cristina
+**_cris.py
+**_secrets.py
 # Cualquier carpeta llamada notas_cris, en cualquier parte del repo
 **/notas_cris/
 

@@ -1,10 +1,22 @@
-REQUERIMENTS:
+# =========================
+# Core Python / HTTP
+# =========================
+requests>=2.31.0
 
-Name: psycopg2-binary
-Version: 2.9.11
+# =========================
+# AWS SDK
+# =========================
+boto3>=1.42.29
 
-Name: SQLAlchemy
-Version: 2.0.39
+# =========================
+# Data processing
+# =========================
+pandas>=2.1.0
+numpy>=1.26.0
 
-Name: boto3
-Version: 1.42.29
+# =========================
+# PostgreSQL / SQL
+# =========================
+psycopg2-binary>=2.9.11
+pg8000>=1.30.5
+SQLAlchemy>=2.0.39
