@@ -1,0 +1,208 @@
+	
+Cómo está el mundo del videojuego:
+ 
+Fuente: https://straitsresearch.com/es/report/video-game-market
+CAGR: crecimiento en inversión en videojuegos
+
+Algunos datos (fuente: Striats research)
+Cloud Gaming: Crece rápidamente (CAGR del 26.25% hasta 2031) al permitir acceso a juegos de alto rendimiento en cualquier dispositivo sin instalaciones pesadas.
+Servicios en Vivo: El consumidor mantiene la fidelidad a franquicias grandes, exigiendo contenido constante. 
+Sostenibilidad en costes de desarrollo: Los juegos AAA, las grandes cadenas como Blockbusters,  tienen presupuestos un 50% más altos y producciones masivas lo que presiona a los estudios.
+Descubrimiento de juegos: La IA inunda el mercado de títulos, haciendo necesario mejorar los mecanismos para que los jugadores encuentren contenido de calidad.
+Nuevas audiencias: La Gen Alpha y nuevas generaciones exigen experiencias sociales inmersivas, no solo narrativas pasivas.
+Acceso a juegos en la nube: La infraestructura 5G es clave para un crecimiento del juego sin hardware costoso. 
+Base de Jugadores: Se prevé que la base global de jugadores aumente de 3.580 millones en 2025 a cerca de 3.900 millones en 2028.
+Mercado Móvil: Se espera que crezca de 158.500 millones en 2026 a más de 371.000 millones para 2033.
+Esports: Se espera que el sector de los deportes electrónicos crezca a un CAGR del 17.48% hasta 2031. 
+
+
+Com los datos arriba expuestos la presentacion de este proyecto va de encuentro a las futuras necessidades.
+Estructura de Presentación: "GamerFutur – API Inteligente para Análisis de la Industria de Videojuegos"
+1. Presentación del equipo –  ( Project Lead & Data Architect)
+1,5 min
+Miguel
+•	Estratega de datos con visión de negocio. 
+•	Experto en transformar necesidades corporativas en infraestructuras escalables y arquitecturas en la nube “cloud” robustas.
+•	Garantizar que la infraestructura no solo funcione hoy, sino que sea capaz de crecer con la empresa mañana.
+
+Cristina Data Scientist / Divulgación
+•	Traductora de datos a valor real. 
+•	Especialista en modelado estadístico y comunicación estratégica, capaz de encontrar patrones donde otros solo ven ruido.
+•	Definir los KPIs de éxito y asegurar que la lógica de la IA responda a las preguntas reales del mercado..
+
+Daniel Data Engineer
+•	Especialista en el "fontanería" de datos. 
+•	Experto en automatización, pipelines de ETL y optimización de flujos de información masivos en entornos AWS.
+•	Mantener el Data Lake (LAMBDAS)  y la base de datos RDS siempre actualizados, limpios y listos para el análisis.
+
+Aléx ML Engineer
+•	Experto en el despliegue de modelos de producción. 
+•	Especialista en FastAPI y ciclo de vida de modelos (MLOps), asegurando que la IA sea accesible y rápida.
+•	Desplegar y optimizar la interfaz de inteligencia artificial en la nube.
+
+Manuel Operations & Cost Analyst (coordinacion y cierre)
+•	Responsable de la viabilidad financiera y operativa. 
+•	Experto en análisis de costes cloud y gestión de riesgos tecnológicos.
+•	Garantizar la viabilidad económica del proyecto y la correcta gestión de riesgos operativos.
+
+-------------------------------------------------------------------------------------------------------------------------------
+
+2. Introducción: El reto de los datos en gaming
+2 min
+
+En 2026, la industria del videojuego no solo compite por la creatividad, sino por la capacidad de reacción ante el mercado. Con miles de lanzamientos mensuales, las empresas ya no pueden permitirse tomar decisiones basadas en la intuición.
+Este proyecto nace de una necesidad crítica: centralizar, procesar y democratizar el acceso a la información global de videojuegos. Utilizando la API de RAWG como fuente primaria, proponemos un sistema que no solo almacena datos, sino que los convierte en conocimiento de inmediato y aplicable  para obtener resultados concretos. Así ponemos en envidéncia la importancia de la toma de decisiones com métricas de análises del mercado sus tendências, gustos, necedidades para minimizar el riesgo de un lanzamiento y dar rápida respuesta a un mercado que está en múltipla transformación tanto tecnológica como de tendência que sea para un simple entretenimientpo individual en família o para un eGamer o mismo eSports.
+Justificamos este proyecto bajo tres pilares:
+1	Agilidad Estratégica: Identificar tendencias antes de que se vuelvan virales.  Usamos el análisis de tendencias para predecir qué mecánicas de juego tendrán mayor tracción.
+
+2	Eficiencia Operativa: Automatizar la recolección de datos que hoy se hace de forma manual. Eliminamos el trabajo manual. Nuestras AWS Lambdas trabajan 24/7 extrayendo y limpiando datos, permitiendo que su equipo humano se dedique a la estrategia, no a copiar y pegar datos en Excel.
+3	Accesibilidad (Q&A de Lenguaje Natural): Rompemos la barrera técnica. Mediante modelos de Natural Language Processing (NLP), permitimos que cualquier empleado pregunte directamente al sistema: "¿Qué juegos de estrategia indie han puntuado más de 80 en el último trimestre?". El sistema entiende, consulta y responde. Así, cualquier departamento (marketing, ventas, desarrollo) consulte la base de datos mediante estas técnicas
+
+En resumen: Estamos transformando el flujo de información en un activo estratégico, reduciendo la incertidumbre y maximizando las probabilidades de que su próximo lanzamiento sea un éxito global.
+
+
+
+
+Cristina
+
+3. Relato divulgativo del proyecto
+3 min
+Antes, tenían que esperar meses de desarrollo, invertir cientos de miles en marketing... y rezar para que funcionara.
+ Traduciendo "Éxito" a Variables Matemáticas
+El éxito es un concepto subjetivo, por lo que mi primer paso es crear un KPI unificado. No solo miraremos la nota de la crítica (Metacritic), sino que cruzaremos datos para definir el "éxito" mediante una métrica ponderada que incluya:
+•	Engagement: Volumen de reseñas de usuarios vs. tiempo desde el lanzamiento.
+•	Longevidad: Mantener el interés (rating) a lo largo de las actualizaciones.
+•	Virilidad: Ratio de "sugerencias" y presencia en listas de deseados.
+
+Con GamerFutur, el proceso cambia radicalmente:
+1.	Cada mañana, nuestro sistema recoge automáticamente los datos más recientes de miles de videojuegos: qué juegos están subiendo en popularidad, qué géneros triunfan en cada región, qué características valoran los jugadores...
+2.	Ese río de información se organiza en un almacén inteligente, listo para ser consultado en segundos.
+3.	Cuando ustedes tienen una idea, solo necesitan describirla: 'Un juego de aventuras con puzles para móvil'. 
+
+Es como tener un analista senior trabajando 24/7 para ustedes, pero sin nómina, sin vacaciones y con acceso a todo el mercado global."
+
+
+
+
+
+
+
+
+04. Fase 01: Infraestructura y Pipeline de Datos
+Por: Daniel
+
+Para garantizar un sistema de alta disponibilidad y bajo coste, hemos optado por una arquitectura Serverless (sin servidores) en AWS. Esto permite que el sistema escale automáticamente según el volumen de datos de RAWG sin intervención manual.
+
+Componentes Técnicos y Justificación:
+1.	Fuente de datos: 
+•	API pública de RAWG. (Programada en Python 3.11. Utiliza librerías asíncronas para gestionar la paginación de la API de RAWG de forma eficiente. Está configurada con retries automáticos para manejar posibles caídas de red o límites de cuota (rate limiting).)
+
+2.	Extracción masiva inicial:
+•	Una AWS Lambda obtiene todos los videojuegos usando paginación. 
+o	Los datos se almacenan como JSON en un bucket S3 (Data Lake). (Actúa como nuestro repositorio de datos crudos. Almacenamos los archivos JSON originales para tener siempre una copia de seguridad auditable. Implementamos una política de ciclo de vida para mover datos antiguos a clases de almacenamiento más baratas (Glacier), optimizando costes.)
+
+3.	Extracción diaria incremental:
+•	EventBridge ejecuta la Lambda diariamente. (Es el "reloj" del sistema. Maneja la  ejecución diaria de la Lambda de extracción, asegurando que el Data Lake y la base de datos nunca tengan más de 24 horas de desfase con la realidad del mercado)
+•	Solo se recuperan juegos nuevos o actualizados.
+
+4.	Procesamiento y carga:
+•	Un trigger en S3 activa una segunda Lambda.
+•	Esta función:
+o	Limpia y estructura los datos
+a.	Los inserta en PostgreSQL en AWS RDS :  (Elegimos PostgreSQL por su robustez y su excelente capacidad para manejar consultas complejas. RDS gestiona por nosotros las copias de seguridad, los parches de seguridad y la alta disponibilidad. Es el "corazón" donde reside la verdad estructurada de los videojuegos.
+
+Resultado: una base de datos siempre actualizada, sin servidores que gestionar
+05. Fase 02: Inteligencia Artificial y Capa de Servicios
+Por: Álex
+En esta fase transformamos la base de datos en un motor de respuestas inteligente mediante el uso de Modelos de Lenguaje (LLMs) y Machine Learning tradicional.
+1. Modelo de Predicción de Éxito (/predict)
+•	Algoritmo: Utilizaremos XGBoost, un algoritmo de aprendizaje supervisado líder en la industria para datos tabulares.
+•	Variables de Entrenamiento: Analizamos el tiempo de juego promedio estimado en horas, cuantas personas han sugerido el juego, el més de lanzamiento, por los géneros primcipales de juego,  las plataformas en que est+a disponible, por la etiqueta descriptiva del juego y por las empresas que crean el juego.
+•	Salida: El modelo devuelve no solo un "Éxito/Fracaso", sino un porcentaje de probabilidad y los factores que más influyen en ese resultado (interpretabilidad del modelo).
+ 
+2. Capa de NLP: Text-to-SQL (/ask-text y /ask-visual)
+Aquí es donde aplicamos la tecnología de vanguardia de Hugging Face:
+•	Modelo de Lenguaje: Implementamos modelos pre-entrenados especializados en traducción de lenguaje natural a código SQL 
+•	Flujo de Consulta:
+1.	El usuario envía una pregunta en español/inglés/francés/portugués
+2.	La API traduce esa intención en una consulta SQL válida para nuestra base de datos RDS.
+3.	Lógica Visual: Para el endpoint /ask-visual, los datos obtenidos se pasan a una capa de procesamiento con Pandas y Seaborn, generando un gráfico (PNG/SVG) 
+4.	Despliegue en AWS EC2 con FastAPI
+•	FastAPI: Elegido por ser el framework de Python más rápido para producción. Incluye documentación automática (Swagger), lo que facilita que otros departamentos se conecten a nuestra API de inmediato. Todo en aceso 24/7.
+
+
+Devuelve:
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+06. Conclusiones, Viabilidad y Análisis de Costes
+NOTA: lo imagine para este trabajo, com 2 millones de gente acedendo….era la base del coste del 
+Por: Manuel
+Como en todos los proyectos hay la necesidad de ver más allá (hacia el futuro) y tener en cuenta los costes.
+
+Análisis Comparativo: Ventajas vs. Desafíos
+Ventajas Competitivas	Desafíos y Soluciones
+Escalabilidad Infinita: 
+
+La arquitectura AWS permite pasar de 10 a 10,000 consultas diarias sin reescribir una sola línea de código.	Dependencia de API Externa:
+ Si la API de RAWG cambia, el pipeline puede fallar 
+Tendríamos de:
+ Implementamos una capa de abstracción en la Lambda para ajustes rápidos y almacenar históricos
+Decisiones Basadas en Ciencia: 
+
+Sustituimos el "creo que..." o”tal vez hay…”  por el modelo predice un 85% de éxito".	Tiempo de respuesta de Modelos IA: 
+Los modelos de Hugging Face pueden ser pesados. 
+Tendríamos de:
+Uso de caché para preguntas frecuentes (FAQ), preguntas y respuestas ya guardadas, para no repetir trabajo. Así, optimizaría el tamaño del modelo.
+Dato para todos:
+Cualquier perfil (no técnico) puede extraer valor sin depender del equipo de IT.	Coste de Transferencia de Datos:
+ El tráfico en AWS puede subir y acarretar más costes.
+Tendríamos de:
+ Compresión de archivos en S3 o sea en formato “parquet”. 
+Y optimización de índices en RDS, para ir directamente a lo que se busca.
+Aplicabilidad sectorial:
+Esta arquitectura se puede adaptar facilmente a otros domínios como e-comeerce, música, cine o finanzas	Mantenimiento y transformación:
+Sectores más complejos y distintos
+Tendríamos de:
+Tener una arquitectura muy bien documentada para una fácil y rápida  transición.
+
+
+ 
+
+Estimación Presupuestaria 
+Hemos diseñado un presupuesto basado en un uso moderado-alto, aprovechando al máximo las capas gratuitas de AWS y optimizando el encendido de instancias.
+
+NOTA: lo imagine para este trabajo, com 2 millones de gente acedendo he tenido por base vários ejemplos y lo he sacado de las tablas del AWS
+
+
+Concepto	Servicio AWS	características	Coste Estimado (Mensual)	Justificación
+Procesamiento	Lambda	512 MB de RAM	$8	Pago por ejecución
+$8/2 millones de peticiones
+	EventBridge		$1	NOTA: solo se paga por evento. $1/millón. Tenemos uno sólo
+Almacenamiento	S3	Standard 	$12	Basado en el volumen histórico de RAWG.
+Base de Datos	RDS	db.t3.micro
+2 vCPU, 1 GB RAM
+Una sola zona, region – eu_north-1	$16	Instancia gestionada con backups.
+
+		TOTAL	$37	
+
+NOTA: 
+Tenemos la noción que este es un presupuesto en lo cual el tráfigo de datos es bajo. Caso de un incremento de usuários conllevará a un mayor tráfico y como consecuencia a  un aumento del coste. Y no olvidar el almacenamiento de datos , cuanto más datos guardo más pago. Por eso la definición de cúales y cúanto tiempo sea importante para el control de la escvala de costes.
