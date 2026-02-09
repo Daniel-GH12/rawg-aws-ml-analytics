@@ -1,67 +1,87 @@
-# 🎮 RAWG Game Success Predictor & Intelligent Analytics
+# RAWG Game Success Predictor & Intelligent Analytics
 
-Este proyecto es una solución **End-to-End** de Ingeniería de Datos y Machine Learning. Integra la extracción automatizada de datos desde la API de RAWG, su almacenamiento y procesamiento en la nube de AWS, y la exposición de una API inteligente potenciada por Inteligencia Artificial (Gemini).
+Este proyecto es una solución **End-to-End** de Ingeniería de Datos y Machine Learning. Integra la extracción automatizada de datos desde la API de RAWG, su procesamiento en la nube y la exposición de modelos predictivos mediante una API inteligente.
 
-## 🚀 Arquitectura del Sistema
-
-El proyecto implementa un flujo completo de datos:
-1.  **Pipeline de Datos:** Extracción y carga (ETL) mediante AWS Lambda hacia AWS RDS.
-2.  **ML Ops:** Scripts dedicados para la obtención de datos locales y el entrenamiento del modelo XGBoost.
-3.  **Servicio Cloud:** API robusta en FastAPI desplegada en AWS EC2 con capacidades de NLP y visualización dinámica.
+El sistema combina ETL, Machine Learning y servicios cloud para ofrecer análisis avanzados sobre videojuegos y predicciones de éxito comercial.
 
 ---
 
-## 📂 Estructura del Proyecto
+## 🏗️ Arquitectura del Sistema
+
+El proyecto implementa un flujo completo de datos:
+
+1. **Pipeline de Datos (ETL):**  
+   Extracción, transformación y carga mediante AWS Lambda hacia AWS RDS (PostgreSQL).
+
+2. **ML Ops:**  
+   Scripts dedicados para la obtención de datos locales y el entrenamiento del modelo XGBoost.
+
+3. **Servicio Cloud:**  
+   API desarrollada con FastAPI desplegada en AWS EC2 con capacidades de NLP y visualización dinámica.
+
+---
+
+## 📁 Estructura del Proyecto
 
 <pre>
 RAWG_ML_PROJECT/
 ├── api/                                # Núcleo de la aplicación FastAPI (Desplegado en EC2)
 │   ├── main.py                         # Lógica de endpoints, integración de Gemini y XGBoost
-│   ├── requirements.txt                # Dependencias de producción (fastapi, uvicorn, xgboost, etc.)
+│   ├── requirements.txt                # Dependencias de producción
 │   └── models/                         # Artefactos del modelo entrenado
 │       ├── game_predictor.json         # Modelo XGBoost listo para inferencia
-│       └── model_columns.pkl           # Serialización de las columnas del set de datos
+│       └── model_columns.pkl           # Columnas del dataset serializadas
 │
-├── infraestructure/                    # Infraestructura Cloud y Persistencia
-│   ├── aws_lambdas/                    # Funciones Serverless para el flujo ETL
-        ├── extraction_masiva.py        # Extracción masiva de datos de la API
-│   │   ├── extract_rawg_data.py        # Extracción diaria de datos
-│   │   └── rawg_s3_to_rds_loader.py    # Envío de datos a un bucket S3 de AWS
-│   └── sql/                            # Scripts de base de datos
-│       └── create_tables.sql           # DDL para la estructura en AWS RDS (PostgreSQL)
+├── ETL/                                # Pipeline de datos y scripts de ingestión
+│   ├── 01_init_rds_schema.ipynb         # Inicialización del esquema
+│   ├── 02_rawg_full_extractor_lambda.py
+│   ├── 03_rawg_full_extraction_pipeline.py
+│   ├── 04_rawg_extractor_lambda.py
+│   ├── 05_rawg_loader_lambda.py
+│   └── create_tables.sql               # Creación de tablas en PostgreSQL
 │
 ├── scripts_entrenamiento/              # Pipeline de Machine Learning
-│   ├── data_fetcher.py                 # Script para la obtención de datos de entrenamiento
-│   └── train_model.py                  # Script de entrenamiento y exportación del modelo XGBoost
+│   ├── data_fetcher.py                 # Obtención de datos de entrenamiento
+│   └── train_model.py                  # Entrenamiento y exportación del modelo
 │
-├── data/                               # Almacenamiento de datos locales (Ignorado en Git)
-│   └── raw_dataset.csv                 # Dataset para entrenamiento
-│
-└── .gitignore                          # Exclusión de archivos (Secrets, venv, datos pesados y logs)
+├── .gitignore                          # Exclusión de archivos temporales y sensibles
+└── README.md                           # Documentación del proyecto
 </pre>
 
-## 🛠️ Stack Tecnológico
+---
 
-**Backend:** Python 3.9+, FastAPI, Uvicorn.
-**Infraestructura Cloud:** AWS EC2, AWS RDS (PostgreSQL), AWS Lambda.
-**IA & Machine Learning:** Google Gemini Pro (NLP), XGBoost, Scikit-learn.
-**Visualización:** Matplotlib, Seaborn.
+## 🧠 Stack Tecnológico
 
-## 🔌 Capacidades de la API
+**Backend**
+- Python 3.9+
+- FastAPI
+- Uvicorn
 
-La API expone tres servicios críticos:
-1.  **Predicción de Éxito (/predict):** Inferencia en tiempo real sobre el éxito de un título mediante el modelo XGBoost.
-2.  **Consultoría IA (/ask-text):** Traducción de lenguaje natural a SQL para consultas complejas sobre la DB mediante Gemini.
-3.  **Visualización Inteligente (/ask-visual):** Generación de reportes gráficos automáticos basados en la data de RAWG.
+**Infraestructura Cloud**
+- AWS EC2
+- AWS RDS (PostgreSQL)
+- AWS Lambda
 
+**IA & Machine Learning**
+- Google Gemini Pro (NLP)
+- XGBoost
+- Scikit-learn
 
-## ⚙️ Guía de Ejecución
+**Visualización**
+- Matplotlib
+- Seaborn
 
-Instalación de dependencias: 
-<pre>bash pip install -r api/requirements.txt</pre>
+---
 
-Lanzamiento de fastAPI en local:
-<pre>http://127.0.0.1:8000/docs</pre>
+## 🚀 Capacidades de la API
 
-Lanzamiento de fastAPI en AWS EC2:
-<pre>https://bit.ly/rawg-fastapi</pre>
+La API expone tres servicios principales:
+
+1. **Predicción de Éxito (`/predict`)**  
+   Inferencia en tiempo real mediante el modelo XGBoost.
+
+2. **Consultoría IA (`/ask-text`)**  
+   Traducción de lenguaje natural a SQL para consultas sobre la base de datos mediante Gemini.
+
+3. **Visualización Inteligente (`/ask-visual`)**  
+   Generación automática de gráficos y reportes basados en datos RAWG.
