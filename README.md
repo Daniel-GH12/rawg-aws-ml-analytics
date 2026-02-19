@@ -1,83 +1,182 @@
-# RAWG Video Games Analytics - ETL Pipeline
+# RAWG Video Games Analytics - AWS ETL Pipeline
 
-Pipeline completo de extracción, transformación y carga (ETL) de datos de videojuegos desde la API de RAWG hacia una base de datos PostgreSQL en AWS RDS, con procesamiento serverless mediante AWS Lambda.
+Pipeline completo de extracción, transformación y carga (ETL) de datos de videojuegos desde la API de RAWG hacia una base de datos PostgreSQL en AWS RDS, con procesamiento serverless mediante AWS Lambda. Y análisis de videojuegos usando AWS, PostgreSQL, Gemini AI y Hugging Face.
+
+## 📋 Índice
+
+- [Descripción](#descripción)
+- [Arquitectura](#arquitectura)
+- [Fase 1: ETL Pipeline](#fase-1-etl-pipeline)
+- [Fase 2: API Text-to-SQL](#fase-2-api-text-to-sql)
+- [Tecnologías](#tecnologías)
+- [Instalación](#instalación)
+- [Uso](#uso)
+- [Estructura del Proyecto](#estructura-del-proyecto)
 
 ---
 
 ## Descripción del Proyecto
+Sistema de análisis de datos de videojuegos que combina:
 
-Este proyecto implementa una arquitectura ETL en la nube para analizar datos de videojuegos obtenidos de [RAWG Video Games Database API](https://rawg.io/apidocs). El sistema procesa información de más de 850,000 videojuegos, incluyendo sus plataformas, géneros, tiendas, clasificaciones ESRB, ratings y etiquetas.
+1. **ETL automatizado en AWS** para extracción diaria de datos de RAWG API
+2. **API REST con Text-to-SQL** usando modelos de IA (Gemini + Hugging Face)
+3. **Visualizaciones automáticas** generadas dinámicamente
 
-### Objetivo
+### Características Principales
 
-Crear un data warehouse en PostgreSQL que permita análisis avanzados sobre:
-- Tendencias de la industria del videojuego
-- Popularidad de plataformas y géneros
-- Evolución de ratings a lo largo del tiempo
-- Relaciones entre clasificaciones ESRB y éxito comercial
-- Análisis de tags y categorización de juegos
-
+- ✅ Extracción automática de ~20,000 videojuegos desde RAWG API
+- ✅ Procesamiento y almacenamiento en PostgreSQL RDS
+- ✅ Consultas en lenguaje natural (español/inglés)
+- ✅ Generación automática de SQL con Gemini AI
+- ✅ Clasificación de intenciones con Hugging Face
+- ✅ Gráficos generados automáticamente con Matplotlib
+- ✅ Respuestas en lenguaje natural
 ---
 
 ## Arquitectura del Sistema
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         RAWG API                                 │
-│                    (850K+ videojuegos)                          │
-└────────────────────────┬────────────────────────────────────────┘
-                         │
-                         ↓
-            ┌────────────────────────┐
-            │  Lambda Extraction     │  ← Extracción periódica
-            │  (Python 3.11)         │     (Scheduled EventBridge)
-            └────────┬───────────────┘
-                     │
-                     ↓
-            ┌────────────────────────┐
-            │   S3 Bucket (Raw)      │
-            │  - extraccion_         │
-            │    historica.json      │
-            │  - games_YYYY-MM-DD    │
-            │    .json               │
-            └────────┬───────────────┘
-                     │
-                     │ Trigger (ObjectCreated)
-                     ↓
-       ┌─────────────────────────────────┐
-       │  Lambda ETL Pipeline            │
-       │  (Python 3.11 + Layers)         │
-       │                                 │
-       │  1. Detecta tipo (histórico/    │
-       │     incremental)                │
-       │  2. Transforma datos            │
-       │  3. Limpia FK inválidas         │
-       │  4. Carga a RDS                 │
-       │     - INSERT (histórico)        │
-       │     - UPSERT (incremental)      │
-       └────────┬────────────────────────┘
-                │
-                ↓
-       ┌─────────────────────────────────┐
-       │   PostgreSQL RDS                │
-       │   (Esquema: rawg)               │
-       │                                 │
-       │   • 5 tablas dimensión          │
-       │   • 1 tabla de hechos           │
-       │   • 2 tablas de estado/métricas │
-       │   • 4 tablas de relación N:M    │
-       └─────────────────────────────────┘
+│                         FASE 1: ETL                             │
+│                                                                 │
+│  RAWG API → Lambda Extractor → Lambda Transformer →            │
+│  → Lambda Loader → PostgreSQL RDS                               │
+│                                                                 │
+│  Orquestación: EventBridge (cada 24h)                          │
+│  Seguridad: AWS Secrets Manager                                │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                      FASE 2: API ML                             │
+│                                                                 │
+│  Usuario → FastAPI → Gemini (Text-to-SQL) → PostgreSQL         │
+│                   ↓                                             │
+│            Hugging Face (Clasificación)                         │
+│                   ↓                                             │
+│            Matplotlib (Visualización)                           │
+│                   ↓                                             │
+│            Respuesta JSON + Gráfico Base64                      │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
+## Fase 1: ETL Pipeline
 
-##  Tecnologías Utilizadas
+### Componentes AWS
 
-### **Cloud & Infrastructure**
-- **AWS Lambda** - Procesamiento serverless
-- **AWS S3** - Almacenamiento de datos raw
-- **AWS RDS PostgreSQL** - Data warehouse
-- **AWS Secrets Manager** - Gestión segura de credenciales
-- **AWS EventBridge** - Scheduling de extracciones
+| Servicio | Función | Configuración |
+|----------|---------|---------------|
+| **Lambda Extractor** | Extrae datos de RAWG API | Runtime: Python 3.11, 512 MB RAM |
+| **Lambda Transformer** | Transforma y limpia datos | Runtime: Python 3.11, 512 MB RAM |
+| **Lambda Loader** | Carga datos en PostgreSQL | Runtime: Python 3.11, 512 MB RAM |
+| **RDS PostgreSQL** | Base de datos principal | db.t3.micro, PostgreSQL 14 |
+| **EventBridge** | Orquestación automática | Trigger: cron(0 2 * * ? *) |
+| **Secrets Manager** | Credenciales DB + API | Rotación: Manual |
+
+### Esquema de Base de Datos
+
+**Tablas principales:**
+- `games` - Información de videojuegos (20,000+ registros)
+- `genres`, `platforms`, `tags`, `stores` - Catálogos
+- `games_status` - Estado de juego (playing, owned, etc.)
+- Tablas relacionales N:M para vincular juegos con géneros, plataformas, etc.
+
+**Campos clave:**
+- `game_rating` (NUMERIC 4,2) - Rating promedio
+- `released_ym` (CHAR 7) - Fecha lanzamiento "YYYY-MM"
+- `game_added` (BIGINT) - Veces agregado a colecciones
+- `playtime` (INTEGER) - Tiempo promedio de juego
+
+---
+## Fase 2: API Text-to-SQL
+
+### Endpoints
+
+#### GET `/ask-visual`
+
+Pregunta en lenguaje natural → SQL → Gráfico
+
+**Ejemplo:**
+```bash
+GET /ask-visual?question=Top 10 géneros con más juegos
+```
+
+**Respuesta:**
+```json
+{
+  "question": "Top 10 géneros con más juegos",
+  "sql_generated": "SELECT g.genre_name AS label, COUNT(*)::bigint AS value...",
+  "data": [...],
+  "chart_base64": "iVBORw0KGgo...",
+  "rows_count": 10
+}
+```
+
+#### GET `/ask-text`
+
+Pregunta en lenguaje natural → SQL → Respuesta textual
+
+**Ejemplo:**
+```bash
+GET /ask-text?question=¿Cuál es el juego mejor valorado?
+```
+
+**Respuesta:**
+```json
+{
+  "question": "¿Cuál es el juego mejor valorado?",
+  "sql_generated": "SELECT game_name AS juego, game_rating...",
+  "answer": "El juego mejor valorado es The Witcher 3 con 4.89...",
+  "data": [...],
+  "rows_count": 1
+}
+```
+### Modelos de IA Utilizados
+
+| Modelo | Uso | Proveedor |
+|--------|-----|-----------|
+| **Gemini 2.5 Flash** | Text-to-SQL dinámico | Google AI |
+| **paraphrase-MiniLM-L3-v2** | Clasificación de intención | Hugging Face |
+
+### Ejemplos de Preguntas Soportadas
+
+**Visualización:**
+- "Top 10 géneros con más juegos"
+- "Evolución de juegos lanzados por año desde 2015"
+- "Plataformas más populares"
+- "Rating promedio por año"
+
+**Textual:**
+- "¿Cuál es el juego mejor valorado?"
+- "¿Cuántos juegos hay en total?"
+- "¿Qué género tiene mejor rating promedio?"
+- "¿Cuáles son los juegos con más playtime?"
+
+---
+
+
+##  Tecnologías
+
+### Backend
+- **FastAPI** - Framework web
+- **Python 3.11** - Lenguaje principal
+- **psycopg2** - Conexión PostgreSQL
+- **pandas** - Análisis de datos
+
+### Machine Learning
+- **Gemini API** (Google) - Text-to-SQL
+- **Hugging Face Transformers** - Clasificación NLP
+- **sentence-transformers** - Embeddings semánticos
+
+### Visualización
+- **Matplotlib** - Gráficos estáticos
+- **Seaborn** - Estilos visuales
+
+### Infraestructura AWS
+- **Lambda** - Funciones serverless
+- **RDS PostgreSQL** - Base de datos
+- **EventBridge** - Orquestación
+- **Secrets Manager** - Gestión de credenciales
+- **EC2** - Hosting de FastAPI (t3.small)
 
 ### **Lenguajes y Frameworks**
 - **Python 3.11**
@@ -99,6 +198,106 @@ Crear un data warehouse en PostgreSQL que permita análisis avanzados sobre:
 
 ---
 
+##  Instalación
+
+### Prerrequisitos
+
+- Python 3.11+
+- Cuenta AWS con permisos para: Lambda, S3, RDS, Secrets Manager
+- API Key de RAWG ([obtener aquí](https://rawg.io/apidocs))
+- API Key de Gemini (https://aistudio.google.com/apikey)
+
+### Paso 1: Clonar Repositorio
+```bash
+git clone https://github.com/tu-usuario/rawg-aws-ml-analytics.git
+cd rawg-aws-ml-analytics
+```
+
+### Paso 2: Instalar Dependencias
+```bash
+# Crear entorno virtual
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# Instalar dependencias
+pip install -r requirements.txt
+```
+
+### Paso 3: Configurar Variables de Entorno
+```bash
+# Copiar template
+cp .env.example .env
+
+# Editar .env con tus credenciales
+nano .env
+```
+
+**Contenido de `.env`:**
+```env
+# Gemini API
+GEMINI_API_KEY=tu_gemini_api_key
+
+# PostgreSQL RDS
+DB_HOST=tu-rds-endpoint.rds.amazonaws.com
+DB_NAME=videogames_db
+DB_USER=tu_usuario
+DB_PASSWORD=tu_password
+DB_SCHEMA=rawg
+
+# RAWG API (solo para ETL)
+RAWG_API_KEY=tu_rawg_api_key
+```
+
+### Paso 4: Ejecutar FastAPI
+```bash
+cd fast_api
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+
+Abrir en navegador: http://localhost:8000/docs
+
+---
+
+
+## Uso
+
+### Desde Swagger UI (Recomendado)
+
+1. Abrir http://localhost:8000/docs
+2. Seleccionar endpoint `/ask-visual` o `/ask-text`
+3. Click en "Try it out"
+4. Escribir pregunta en campo `question`
+5. Click en "Execute"
+
+### Desde cURL
+```bash
+# Ejemplo visual
+curl "http://localhost:8000/ask-visual?question=Top%2010%20géneros"
+
+# Ejemplo textual
+curl "http://localhost:8000/ask-text?question=¿Cuántos%20juegos%20hay?"
+```
+
+### Desde Python
+```python
+import requests
+
+# Ask Visual
+response = requests.get(
+    "http://localhost:8000/ask-visual",
+    params={"question": "Top 10 géneros con más juegos"}
+)
+data = response.json()
+
+# Decodificar imagen base64
+import base64
+img_bytes = base64.b64decode(data['chart_base64'])
+with open('chart.png', 'wb') as f:
+    f.write(img_bytes)
+```
+
+---
+
 ##  Estructura del Proyecto
 ```
 rawg-aws-ml-analytics/
@@ -117,13 +316,15 @@ rawg-aws-ml-analytics/
 |       └── sqlalchemy/
 |       └── lambda-loader.zip
 |    
-├── models/                                   #
-│   ├──                                       # 
-│   └──                                       # 
+├── models/                                  # Scripts modelado
+|   ├── text_to_sql_gemini.py                # Generación SQL con Gemini
+|   ├── predictor.py                         # Modelo predicción de éxito de un juego
+│   └── train.py                             # Entrenamiento modelo predicción
 │   
-├── fast_api/                              # fast_api
-│   ├──                                       # 
-|   └── 
+├── fast_api/                                # API REST
+│   ├── main.py                              # FastAPI endpoints
+│   ├── requirements.txt                     # Dependencias
+|   └── README.md                            # Docs de la API
 │
 ├── docs/                                     # Documentación
 |   └── AWS_DEPLOYMENTS_INSTRUCTIONS.ipynb    # Instrucciones aws lambda_loader y lambda_daily_extract
@@ -132,17 +333,21 @@ rawg-aws-ml-analytics/
 ├── notebooks/                                # Jupyter Notebooks
 │   └── etl_notebooks/
 │   |   ├── 00_exploración_rawg.ipynb         # Análisis exploratorio
-│   |   └── 01_extraccion_rawg.ipynb          # Desarrollo del pipeline
+│   |   ├── 01_extraccion_rawg.ipynb          # Desarrollo del pipeline
 |   |   ├── 02_validacion_datos_rawg.ipynb    # Desarrollo del pipeline
-│   |   └── 03_transformacion_rawg            # Desarrollo del pipeline
+│   |   ├── 03_transformacion_rawg            # Desarrollo del pipeline
 |   |   ├── 04_.create_database_local.ipynb   # Desarrollo del pipeline
-│   |   └── 05_transf_load_rawg_local.ipynb   # Desarrollo del pipeline
+│   |   ├── 05_transf_load_rawg_local.ipynb   # Desarrollo del pipeline
 |   |   └── 06_trasf_load_rawg_aws.ipynb      # Desarrollo del pipeline
 |   |
 |   └── models_notebooks/
-|   └── fast_api_notebooks/
+|        ├──01_text_to_sql.ipynb              # Pruebas text_to_sql
+|        ├──02_feature_engineering.ipynb
+|        └──03_modelado.ipynb
+|   
 │
 ├── utils/                                    # Utilidades
+|   ├──__init__.py                            
 │   └── aws_secrets.py                        # Helper para Secrets Manager
 │       
 ├── sql/                                      # Scripts SQL
@@ -159,417 +364,57 @@ rawg-aws-ml-analytics/
 
 ---
 
-## Modelo de Datos
+## Seguridad
 
-### **Esquema: `rawg`**
-
-#### **Tablas Dimensión (Catálogos)**
-- `esrb_ratings` - Clasificaciones ESRB (Everyone, Teen, Mature, etc.)
-- `platforms` - Plataformas de juego (PC, PlayStation, Xbox, etc.)
-- `genres` - Géneros (Action, RPG, Strategy, etc.)
-- `stores` - Tiendas digitales (Steam, Epic Games, GOG, etc.)
-- `tags` - Etiquetas de categorización (4,000+ tags únicos)
-
-#### **Tabla Principal (Hechos)**
-- `games` - Información principal de cada videojuego
-  - Métricas: rating, ratings_count, playtime, suggestions_count
-  - Metadatos: nombre, fecha de lanzamiento, clasificación ESRB
-
-#### **Tablas de Estado y Métricas**
-- `games_status` - Estado del juego por usuarios (owned, beaten, playing, etc.)
-- `ratings_distribution` - Distribución de ratings (exceptional, recommended, meh, skip)
-
-#### **Tablas de Relación N:M (Bridge Tables)**
-- `game_platforms` - Juegos ↔ Plataformas
-- `game_genres` - Juegos ↔ Géneros
-- `game_stores` - Juegos ↔ Tiendas
-- `game_tags` - Juegos ↔ Tags
-
-### **Diagrama ERD simplificado**
-```
-┌──────────────┐       ┌──────────────┐       ┌──────────────┐
-│ platforms    │       │   genres     │       │   stores     │
-├──────────────┤       ├──────────────┤       ├──────────────┤
-│ platform_id  │       │ genre_id PK  │       │ store_id PK  │
-│ platform_name│       │ genre_name   │       │ store_name   │
-└──────┬───────┘       └──────┬───────┘       └──────┬───────┘
-       │                      │                      │
-       │                      │                      │
-       └──────────┬───────────┴──────────┬───────────┘
-                  │                      │
-         ┌────────▼────────┐    ┌────────▼────────┐
-         │ game_platforms  │    │  game_genres    │
-         ├─────────────────┤    ├─────────────────┤
-         │ game_id    FK   │    │ game_id    FK   │
-         │ platform_id FK  │    │ genre_id   FK   │
-         └────────┬────────┘    └────────┬────────┘
-                  │                      │
-                  └──────────┬───────────┘
-                             │
-                    ┌────────▼────────┐
-                    │     GAMES       │ ← Tabla central
-                    ├─────────────────┤
-                    │ game_id     PK  │
-                    │ game_name       │
-                    │ rating          │
-                    │ released_ym     │
-                    │ esrb_id     FK  │
-                    └─────────────────┘
-```
+- ✅ Solo permite queries `SELECT` (no `DROP`, `DELETE`, etc.)
+- ✅ Credenciales en AWS Secrets Manager
+- ✅ Validación de SQL antes de ejecutar
+- ✅ Conexiones SSL a RDS
+- ✅ Rate limiting en Lambda
 
 ---
 
-## Configuración e Instalación
+## 📊 Métricas del Proyecto
 
-### **1. Requisitos previos**
-
-- Python 3.11+
-- Cuenta AWS con permisos para: Lambda, S3, RDS, Secrets Manager
-- API Key de RAWG ([obtener aquí](https://rawg.io/apidocs))
-
-### **2. Instalación local**
-```bash
-# Clonar repositorio
-git clone https://github.com/tu-usuario/rawg-aws-ml-analytics.git
-cd rawg-aws-ml-analytics
-
-# Crear entorno virtual
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# o
-venv\Scripts\activate     # Windows
-
-# Instalar dependencias
-pip install -r requirements.txt
-```
-
-### **3. Configurar credenciales AWS**
-
-Crear secreto en AWS Secrets Manager con el nombre `Postgre`:
-```json
-{
-  "username": "tu_usuario",
-  "password": "tu_password",
-  "host": "tu-rds-endpoint.rds.amazonaws.com",
-  "port": 5432,
-  "dbname": "rawg_db"
-}
-```
-
-### **4. Crear base de datos RDS**
-```bash
-# Ejecutar script de creación del esquema
-psql -h tu-rds-endpoint -U usuario -d rawg_db -f sql/create_schema.sql
-```
-
-O usar el notebook de desarrollo para crear el esquema.
+| Métrica | Valor |
+|---------|-------|
+| **Juegos en BD** | ~20,000 |
+| **Tablas** | 10 |
+| **Endpoints API** | 2 principales |
+| **Modelos ML** | 2 (Gemini + HF) |
+| **Costo mensual AWS** | ~$15-30 |
 
 ---
 
+## 🎓 Aprendizajes Clave
 
-### **5. Configurar pgAdmin 4 (opcional, recomendado)**
-
-pgAdmin 4 facilita la administración de la base de datos RDS y la ejecución de queries.
-
-#### **Instalación:**
-
-**Windows:**
-- Descargar desde [pgAdmin.org](https://www.pgadmin.org/download/pgadmin-4-windows/)
-- Instalar ejecutable
-
-**Linux:**
-```bash
-# Ubuntu/Debian
-sudo apt install pgadmin4
-```
-
-**macOS:**
-```bash
-brew install --cask pgadmin4
-```
-#### **Conectar a RDS:**
-
-1. Abrir pgAdmin 4
-2. Click derecho en **"Servers"** → **"Register"** → **"Server"**
-3. Configurar:
-
-**General tab:**
-- Name: `RAWG Production DB`
-
-**Connection tab:**
-- Host: `tu-rds-endpoint.rds.amazonaws.com`
-- Port: `5432`
-- Maintenance database: `rawg_db`
-- Username: `tu_usuario`
-- Password: `tu_password`
-- Save password: s
-
-**SSL tab:**
-- SSL mode: `Require`
-
-4. Click **"Save"**
-Ahora puedes explorar el esquema `rawg` visualmente y ejecutar queries.
-
-#### **Queries recomendadas:**
-
-Ver estructura de tablas:
-```sql
-SELECT 
-    table_name,
-    (SELECT COUNT(*) FROM information_schema.columns 
-     WHERE table_schema = 'rawg' AND table_name = t.table_name) as column_count
-FROM information_schema.tables t
-WHERE table_schema = 'rawg'
-ORDER BY table_name;
-```
-
-Verificar conteo de registros:
-```sql
-SELECT 
-    'games' as tabla, COUNT(*) as registros FROM rawg.games
-UNION ALL
-SELECT 'platforms', COUNT(*) FROM rawg.platforms
-UNION ALL
-SELECT 'genres', COUNT(*) FROM rawg.genres
-UNION ALL
-SELECT 'stores', COUNT(*) FROM rawg.stores
-UNION ALL
-SELECT 'tags', COUNT(*) FROM rawg.tags
-ORDER BY registros DESC;
-```
-
-
-## Deployment en AWS Lambda
-
-### **Paso 1: Empaquetar código**
-```bash
-# Crear directorio de deployment
-mkdir lambda-deploy
-cd lambda-deploy
-
-# Copiar archivos necesarios
-cp ../01_etl/aws_lambda/lambda_loader.py .
-cp ../01_etl/transform_rawg.py .
-cp -r ../utils .
-
-# Crear ZIP
-zip -r lambda-etl-pipeline.zip .
-```
-
-### **Paso 2: Crear función Lambda**
-```bash
-aws lambda create-function \
-  --function-name rawg-etl-pipeline \
-  --runtime python3.11 \
-  --handler lambda_function.lambda_handler \
-  --role arn:aws:iam::ACCOUNT_ID:role/lambda-execution-role \
-  --zip-file fileb://lambda-etl-pipeline.zip \
-  --timeout 300 \
-  --memory-size 1024 \
-  --environment Variables={PYTHONUNBUFFERED=1}
-```
-
-### **Paso 3: Añadir Lambda Layers**
-```bash
-# Layer de pandas
-aws lambda update-function-configuration \
-  --function-name rawg-etl-pipeline \
-  --layers \
-    arn:aws:lambda:eu-west-1:336392948345:layer:AWSSDKPandas-Python311:13 \
-    arn:aws:lambda:us-east-1:898466741470:layer:psycopg2-py311:1
-```
-
-### **Paso 4: Configurar trigger S3**
-```bash
-aws s3api put-bucket-notification-configuration \
-  --bucket project-api-load-rawg-cris \
-  --notification-configuration file://s3-trigger-config.json
-```
-
-**s3-trigger-config.json:**
-```json
-{
-  "LambdaFunctionConfigurations": [
-    {
-      "LambdaFunctionArn": "arn:aws:lambda:region:account:function:rawg-etl-pipeline",
-      "Events": ["s3:ObjectCreated:*"],
-      "Filter": {
-        "Key": {
-          "FilterRules": [
-            {"Name": "suffix", "Value": ".json"}
-          ]
-        }
-      }
-    }
-  ]
-}
-```
+- ✅ Arquitectura serverless en AWS
+- ✅ Integración de múltiples modelos de IA
+- ✅ Text-to-SQL dinámico con LLMs
+- ✅ FastAPI para APIs de ML
+- ✅ Manejo de seguridad en SQL
+- ✅ Visualización automática de datos
 
 ---
 
-## Uso del Sistema
+## 📝 Notas
 
-### **Carga inicial (histórica)**
-```bash
-# 1. Extraer datos históricos
-python 01_etl/extract_rawg.py --mode historical --output extraccion_historica.json
-
-# 2. Subir a S3 (esto dispara Lambda automáticamente)
-aws s3 cp extraccion_historica.json s3://project-api-load-rawg-cris/
-
-# Lambda detecta "historica" en el nombre:
-# → Borra esquema existente
-# → Recrea esquema limpio
-# → Ejecuta INSERT masivo
-```
-
-### **Cargas incrementales (diarias)**
-```bash
-# 1. Extraer datos del día
-python 01_etl/extract_rawg.py --mode daily --output games_2025-02-08.json
-
-# 2. Subir a S3
-aws s3 cp games_2025-02-08.json s3://project-api-load-rawg-cris/
-
-# Lambda detecta archivo sin "historica":
-# → Mantiene esquema existente
-# → Ejecuta UPSERT (actualiza existentes, inserta nuevos)
-```
-
-### **Automatización con EventBridge**
-
-Programar extracción diaria:
-```bash
-aws events put-rule \
-  --name rawg-daily-extraction \
-  --schedule-expression "cron(0 2 * * ? *)"  # 2 AM UTC diario
-```
+- La API usa Gemini 2.5 Flash con límite de 1,500 requests/día (gratis)
+- Los gráficos se retornan en base64 PNG
+- El ETL se ejecuta automáticamente cada 24 horas
+- Esquema optimizado para consultas analíticas
 
 ---
-
-## Queries Analíticas de Ejemplo
-
-### **Top 10 juegos mejor valorados**
-```sql
-SELECT 
-    game_name,
-    game_rating,
-    ratings_count,
-    released_ym
-FROM rawg.games
-WHERE ratings_count > 1000
-ORDER BY game_rating DESC, ratings_count DESC
-LIMIT 10;
-```
-### **Distribución de juegos por género**
-```sql
-SELECT 
-    g.genre_name, 
-    COUNT(*) as cantidad
-FROM rawg.game_genres gg
-JOIN rawg.genres g ON gg.genre_id = g.genre_id
-GROUP BY g.genre_name
-ORDER BY cantidad DESC;
-```
-### **Distribución de juegos por plataforma**
-```sql
-SELECT 
-    p.platform_name,
-    COUNT(DISTINCT gp.game_id) as total_games
-FROM rawg.platforms p
-JOIN rawg.game_platforms gp ON p.platform_id = gp.platform_id
-GROUP BY p.platform_name
-ORDER BY total_games DESC;
-```
-
-
-
----
-
-## Métricas del Sistema
-
-### **Volumen de datos**
-
-- **Juegos totales:** ~850,000 registros
-- **Plataformas:** ~50 plataformas
-- **Géneros:** ~20 géneros
-- **Tags:** ~4,000 tags únicos
-- **Relaciones game_platforms:** ~3.5M registros
-- **Relaciones game_tags:** ~10M registros
-
-### **Performance**
-
-- **Carga histórica:** ~15-20 minutos (850K juegos)
-- **Carga incremental:** ~2-5 minutos (1,000-5,000 juegos/día)
-- **Tamaño base de datos:** ~5 GB (datos + índices)
-
----
-
-##  Seguridad
-
--  Credenciales almacenadas en AWS Secrets Manager
--  Lambda con rol IAM de mínimos privilegios
--  RDS en VPC privada
--  Conexiones SSL/TLS a base de datos
--  API Key de RAWG como variable de entorno
-
----
-
-##  Troubleshooting
-
-### **Error: Foreign Key violation (esrb_id)**
-
-**Causa:** Juegos con `esrb_id=0` que no existe en `esrb_ratings`
-
-**Solución:** El pipeline convierte automáticamente `esrb_id=0` a `NULL`
-
-### **Error: Column "released_at" does not exist**
-
-**Causa:** Esquema desactualizado en RDS
-
-**Solución:** 
-```sql
-DROP SCHEMA rawg CASCADE;
--- Volver a ejecutar create_schema.sql
-```
-
-### **Lambda timeout**
-
-**Causa:** Archivo muy grande (>100K juegos)
-
-**Solución:** Aumentar timeout y memoria:
-```bash
-aws lambda update-function-configuration \
-  --function-name rawg-etl-pipeline \
-  --timeout 600 \
-  --memory-size 2048
-```
-
----
-
-## Roadmap
-
-- [ ] Dashboard interactivo con Streamlit/Plotly
-- [ ] Modelo de Machine Learning para predicción de ratings
-- [ ] API REST para consultas al data warehouse
-- [ ] Integración con más fuentes de datos (Metacritic, Steam)
-- [ ] Análisis de sentimiento de reviews
-- [ ] Sistema de recomendación de juegos
-
----
-
 ## Autora
 
-**Cristina Rodríguez Arroyo**
+**Cristina Rodríguez Arroyo** - Data Science Bootcamp Student
 -  Bootcamp AI & Data Science - Hack a Boss (2025-2026)
--  Santiago de Compostela, Galicia, España
--  Background: Ingeniería Forestal + Educación (Matemáticas) + GIS + BELLAS ARTES
 
 ---
 
 ## Licencia
 
-Este proyecto es de código abierto bajo licencia MIT.
+Este proyecto es parte de un bootcamp educativo.
 
 ---
 
