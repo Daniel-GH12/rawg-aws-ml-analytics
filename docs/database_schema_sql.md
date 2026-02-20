@@ -1,6 +1,9 @@
-SCHEMA_SQL =
+# Database Schema - RAWG Project
 
-"""
+## SQL Definition
+
+
+"""sql
 DROP SCHEMA IF EXISTS rawg CASCADE;
 CREATE SCHEMA rawg;
 

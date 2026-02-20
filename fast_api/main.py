@@ -5,6 +5,7 @@ Proyecto: rawg-aws-ml-analytics
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 import pandas as pd
 import numpy as np
@@ -14,7 +15,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import io
 import base64
+import joblib
 from typing import Optional, List, Dict, Any
+from pathlib import Path
 import sys
 import os
 
@@ -43,13 +46,6 @@ MODELS_DIR = Path(__file__).parent.parent / 'models'
 def load_latest_model():
     """
     Carga el modelo XGBoost más reciente y sus features
-    
-    Busca archivos:
-    - xgb_success_model_YYYYMMDD_HHMMSS.pkl (modelo)
-    - success_features.pkl (lista de features)
-    
-    Returns:
-        tuple: (model, features) o (None, None) si no encuentra
     """
     try:
         # Buscar todos los modelos disponibles
@@ -124,64 +120,48 @@ app.add_middleware(
 # ============================================================================
 
 class GameInput(BaseModel):
-    """Datos de entrada para predicción de éxito"""
+    """Datos de entrada para predicción - 11 features en orden exacto del modelo"""
     
-    # Features numéricas principales
-    game_rating: float = Field(..., ge=0.0, le=5.0, description="Rating del juego (0-5)")
-    ratings_count: int = Field(..., ge=0, description="Número de ratings recibidos")
-    game_added: int = Field(..., ge=0, description="Veces agregado a colecciones")
-    suggestions_count: int = Field(0, ge=0, description="Sugerencias recibidas")
-    playtime: int = Field(0, ge=0, description="Horas promedio de juego")
-    
-    # Status del juego
-    playing: int = Field(0, ge=0, description="Jugadores activos actualmente")
-    owned: int = Field(0, ge=0, description="Usuarios que lo poseen")
-    toplay: int = Field(0, ge=0, description="En lista de pendientes")
-    beaten: int = Field(0, ge=0, description="Usuarios que lo completaron")
-    dropped: int = Field(0, ge=0, description="Usuarios que lo abandonaron")
-    yet: int = Field(0, ge=0, description="Usuarios que no lo han empezado")
-    
-    # Alcance
-    num_platforms: int = Field(..., ge=1, description="Número de plataformas disponibles")
-    num_stores: int = Field(..., ge=1, description="Número de tiendas donde se vende")
+    # ORDEN EXACTO según success_features.pkl:
+    # 0: num_platforms
+    num_platforms: int = Field(..., ge=1, description="Número de plataformas")
+    # 1: num_stores
+    num_stores: int = Field(..., ge=1, description="Número de tiendas")
+    # 2: num_genres
     num_genres: int = Field(..., ge=1, description="Número de géneros")
+    # 3: num_tags
     num_tags: int = Field(..., ge=1, description="Número de tags")
-    
-    # Categóricas
-    esrb_name: str = Field("Unknown", description="Clasificación ESRB")
-    has_multiplayer: bool = Field(False, description="Tiene modo multijugador")
-    has_singleplayer: bool = Field(True, description="Tiene modo un jugador")
-    is_indie: bool = Field(False, description="Es un juego indie")
-    
-    # Fecha de lanzamiento
-    released_ym: Optional[str] = Field(None, description="Fecha lanzamiento (YYYY-MM)")
+    # 4: years_since_release
+    years_since_release: int = Field(..., ge=0, description="Años desde lanzamiento")
+    # 5: recency_score
+    recency_score: int = Field(..., ge=0, description="Score de antigüedad")
+    # 6: esrb_name
+    esrb_name: str = Field(..., description="Clasificación ESRB")
+    # 7: release_year
+    release_year: str = Field(..., description="Año de lanzamiento")
+    # 8: has_multiplayer
+    has_multiplayer: str = Field(..., description="Tiene multijugador: '0' o '1'")
+    # 9: has_singleplayer
+    has_singleplayer: str = Field(..., description="Tiene un jugador: '0' o '1'")
+    # 10: is_indie
+    is_indie: str = Field(..., description="Es indie: '0' o '1'")
     
     class Config:
         json_schema_extra = {
             "example": {
-                "game_rating": 4.5,
-                "ratings_count": 1000,
-                "game_added": 5000,
-                "suggestions_count": 200,
-                "playtime": 50,
-                "playing": 2000,
-                "owned": 10000,
-                "toplay": 3000,
-                "beaten": 5000,
-                "dropped": 500,
-                "yet": 1000,
                 "num_platforms": 5,
                 "num_stores": 3,
                 "num_genres": 2,
                 "num_tags": 10,
+                "years_since_release": 2,
+                "recency_score": 2,
                 "esrb_name": "Everyone",
-                "has_multiplayer": True,
-                "has_singleplayer": True,
-                "is_indie": False,
-                "released_ym": "2023-05"
+                "release_year": "2022",
+                "has_multiplayer": "1",
+                "has_singleplayer": "1",
+                "is_indie": "0"
             }
         }
-
 class PredictionResponse(BaseModel):
     """Respuesta del endpoint /predict"""
     prediction: str = Field(..., description="Predicción: 'Éxito' o 'No Éxito'")
@@ -234,105 +214,52 @@ class HealthResponse(BaseModel):
 
 def create_features_dataframe(game_input: GameInput) -> pd.DataFrame:
     """
-    Crea DataFrame con todas las features necesarias para el modelo
+    Crea DataFrame con las 11 features en el orden EXACTO del modelo
     
-    Incluye:
-    - Features originales del input
-    - Features derivadas calculadas
-    - One-hot encoding de ESRB
-    
-    Args:
-        game_input: Datos del juego desde la API
-        
-    Returns:
-        DataFrame con features en el orden correcto para el modelo
+    Orden según success_features.pkl:
+    0-num_platforms, 1-num_stores, 2-num_genres, 3-num_tags,
+    4-years_since_release, 5-recency_score, 6-esrb_name, 7-release_year,
+    8-has_multiplayer, 9-has_singleplayer, 10-is_indie
     """
-    # 1. Features básicas
+    
+    # Crear lista en el orden exacto (NO dict para evitar reordenamientos)
     data = {
-        'game_rating': game_input.game_rating,
-        'ratings_count': game_input.ratings_count,
-        'game_added': game_input.game_added,
-        'suggestions_count': game_input.suggestions_count,
-        'playtime': game_input.playtime,
-        'playing': game_input.playing,
-        'owned': game_input.owned,
-        'toplay': game_input.toplay,
-        'beaten': game_input.beaten,
-        'dropped': game_input.dropped,
-        'yet': game_input.yet,
         'num_platforms': game_input.num_platforms,
         'num_stores': game_input.num_stores,
         'num_genres': game_input.num_genres,
         'num_tags': game_input.num_tags,
-        'has_multiplayer': int(game_input.has_multiplayer),
-        'has_singleplayer': int(game_input.has_singleplayer),
-        'is_indie': int(game_input.is_indie),
+        'years_since_release': game_input.years_since_release,
+        'recency_score': game_input.recency_score,
+        'esrb_name': game_input.esrb_name,
+        'release_year': game_input.release_year,
+        'has_multiplayer': game_input.has_multiplayer,
+        'has_singleplayer': game_input.has_singleplayer,
+        'is_indie': game_input.is_indie,
     }
-
-    # 2. Features derivadas
-    # rating_popularity_ratio
-    data['rating_popularity_ratio'] = (
-        game_input.game_rating / np.log(game_input.ratings_count + 1)
-    )
     
-    # engagement_score
-    data['engagement_score'] = game_input.playtime * game_input.playing
-    
-    # quality_confidence
-    data['quality_confidence'] = (
-        game_input.game_rating * np.log(game_input.ratings_count + 1)
-    )
-    
-    # years_since_release
-    if game_input.released_ym and len(game_input.released_ym) >= 4:
-        try:
-            release_year = int(game_input.released_ym[:4])
-            data['years_since_release'] = 2024 - release_year
-        except (ValueError, TypeError):
-            data['years_since_release'] = 0
-    else:
-        data['years_since_release'] = 0
-
-    # 3. One-hot encoding de ESRB
-    # Categorías posibles de ESRB en tu dataset
-    esrb_categories = [
-        'Adults Only', 'Everyone', 'Everyone 10+', 
-        'Mature', 'Rating Pending', 'Teen', 'Unknown'
-    ]
-    
-    for category in esrb_categories:
-        col_name = f'esrb_{category}'
-        data[col_name] = 1 if game_input.esrb_name == category else 0
-    
-    # 4. Crear DataFrame
+    # Crear DataFrame
     df = pd.DataFrame([data])
     
-    # 5. Si tenemos MODEL_FEATURES, asegurar que coinciden
+    # Reordenar según MODEL_FEATURES
     if MODEL_FEATURES is not None:
-        # Añadir columnas faltantes con 0
-        for feat in MODEL_FEATURES:
-            if feat not in df.columns:
-                df[feat] = 0
-        # Seleccionar solo las features del modelo en el orden correcto
-        try:
-            df = df[MODEL_FEATURES]
-        except KeyError as e:
-            print(f"Error alineando features: {e}")
-            # Si falla, usar las columnas que tenemos
-            pass
+        df = df[MODEL_FEATURES]
+    
+    # Asegurar tipos correctos
+    numeric_cols = ['num_platforms', 'num_stores', 'num_genres', 'num_tags', 
+                    'years_since_release', 'recency_score']
+    for col in numeric_cols:
+        df[col] = df[col].astype('int64')
+    
+    categorical_cols = ['esrb_name', 'release_year', 'has_multiplayer', 
+                       'has_singleplayer', 'is_indie']
+    for col in categorical_cols:
+        df[col] = df[col].astype('object')
     
     return df
-        
-def get_confidence_level(probability: float) -> str:
-    """
-    Determina el nivel de confianza basado en la probabilidad
+
     
-    Args:
-        probability: Probabilidad de la clase predicha
-        
-    Returns:
-        "Alta", "Media" o "Baja"
-    """
+def get_confidence_level(probability: float) -> str:
+  
     if probability >= 0.8 or probability <= 0.2:
         return "Alta"
     elif probability >= 0.65 or probability <= 0.35:
@@ -437,7 +364,7 @@ def root():
         "version": "2.0.0",
         "description":"API con predicción ML (XGBoost) y consultas en lenguaje natural (Gemini)",
         "endpoints": {
-             "predict": "POST /predict - Predice éxito de videojuego",
+            "predict": "POST /predict - Predice éxito de videojuego",
             "visual": "GET /ask-visual - Consulta con gráfico",
             "text": "GET /ask-text - Consulta con respuesta textual",
             "health": "GET /health - Estado del servicio",
@@ -472,76 +399,35 @@ def root():
 
 @app.post("/predict", response_model=PredictionResponse, tags=["Machine Learning"])
 def predict_success(game_input: GameInput):
-    """
-    Predice si un videojuego será un éxito
+    """Predice si un videojuego será un éxito"""
     
-    **Definición de Éxito:**
-    Un juego es considerado "éxito" si cumple al menos uno de:
-    - Rating >= 4.0 con mínimo 100 votos (calidad validada)
-    - game_added >= percentil 75 (alta popularidad)
-    - playtime alto + comunidad activa (alto engagement)
-    
-    **Proceso:**
-    1. Recibe características del juego
-    2. Calcula features derivadas automáticamente
-    3. Predice con modelo XGBoost entrenado
-    4. Retorna predicción + probabilidades + confianza
-    
-    **Modelo:**
-    - Algoritmo: XGBoost Classifier
-    - Features: ~45 (numéricas + derivadas + one-hot encoded)
-    - Entrenado en: ~20,000 videojuegos de RAWG API
-    
-    **Ejemplo de Request:**
-```json
-    {
-      "game_rating": 4.5,
-      "ratings_count": 1000,
-      "game_added": 5000,
-      "playtime": 50,
-      "playing": 2000,
-      "num_platforms": 5,
-      "num_stores": 3,
-      "num_genres": 2,
-      "num_tags": 10,
-      "esrb_name": "Everyone",
-      "released_ym": "2023-05"
-    }
-```
-    """
     # Verificar que el modelo está cargado
     if ML_MODEL is None:
         raise HTTPException(
             status_code=503,
-            detail={
-                "error": "Modelo ML no disponible",
-                "message": "El modelo no está entrenado o no se pudo cargar",
-                "solution": "Ejecuta el notebook 03_modelado.ipynb para entrenar el modelo"
-            }
-        )
+            detail="Modelo de predicción no disponible"
+        )  # ← Faltaba cerrar aquí
     
     try:
         # Crear features
         X = create_features_dataframe(game_input)
         
-        # Hacer predicción
+        # El Pipeline hace preprocesamiento + predicción automáticamente
         prediction_class = int(ML_MODEL.predict(X)[0])
         prediction_proba = ML_MODEL.predict_proba(X)[0]
         
         prob_no_success = float(prediction_proba[0])
         prob_success = float(prediction_proba[1])
         
-        # Determinar confianza
         confidence = get_confidence_level(prob_success)
         
-        # Preparar respuesta
         return PredictionResponse(
             prediction="Éxito" if prediction_class == 1 else "No Éxito",
             prediction_class=prediction_class,
             probability_success=round(prob_success, 4),
             probability_no_success=round(prob_no_success, 4),
             confidence=confidence,
-            features_used=len(MODEL_FEATURES) if MODEL_FEATURES else X.shape[1]
+            features_used=11
         )
         
     except Exception as e:
@@ -556,8 +442,6 @@ def predict_success(game_input: GameInput):
                 "traceback": error_details
             }
         )
-
-
 
 @app.get("/ask-visual", response_model=VisualResponse, tags=["Text-to-SQL"])
 def ask_visual(
@@ -641,6 +525,74 @@ def ask_visual(
             status_code=500,
             detail=f"Error procesando la pregunta: {str(e)}"
         )
+
+@app.get("/ask-visual-image", tags=["Text-to-SQL"])
+def ask_visual_image(
+    question: str = Query(
+        ..., 
+        description="Pregunta para visualizar",
+        example="Top 10 géneros con más juegos"
+    )
+):
+    """
+    Pregunta con gráfico directo (PNG)
+    
+    A diferencia de /ask-visual que retorna JSON con base64,
+    este endpoint retorna la imagen PNG directamente.
+    Puedes abrirlo directamente en el navegador.
+    """
+    
+    if not question or len(question.strip()) < 5:
+        raise HTTPException(
+            status_code=400, 
+            detail="La pregunta debe tener al menos 5 caracteres"
+        )
+    
+    try:
+        # Generar SQL con Gemini
+        sql = generate_sql_for_visual(question)
+        
+        if not sql:
+            raise HTTPException(
+                status_code=500,
+                detail="No se pudo generar SQL válido"
+            )
+        
+        # Ejecutar query
+        df = query_to_dataframe(sql)
+        
+        if df.empty:
+            raise HTTPException(
+                status_code=404,
+                detail="La consulta no retornó datos"
+            )
+        
+        if not {"label", "value"}.issubset(df.columns):
+            raise HTTPException(
+                status_code=500,
+                detail=f"SQL no retornó formato correcto. Columnas: {list(df.columns)}"
+            )
+        
+        # Crear gráfico
+        fig = create_chart(df, chart_type="auto")
+        
+        # Convertir a bytes (en memoria)
+        buf = io.BytesIO()
+        fig.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+        buf.seek(0)
+        plt.close(fig)
+        
+        # Retornar imagen directamente
+        return StreamingResponse(buf, media_type="image/png")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error: {str(e)}"
+        )
+
 
 
 @app.get("/ask-text", response_model=TextResponse, tags=["Text-to-SQL"])
@@ -735,8 +687,10 @@ def health_check():
     """
     return HealthResponse(
         status="healthy",
-        service="text-to-sql-api",
-        version="2.0.0"
+        service="rawg-ml-api",
+        version="3.0.0",
+        model_loaded=ML_MODEL is not None,  # ← Añadir
+        features_count=len(MODEL_FEATURES) if MODEL_FEATURES else None  # ← Añadir
     )
 
 

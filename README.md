@@ -327,8 +327,11 @@ rawg-aws-ml-analytics/
 |   └── README.md                            # Docs de la API
 │
 ├── docs/                                     # Documentación
-|   └── AWS_DEPLOYMENTS_INSTRUCTIONS.ipynb    # Instrucciones aws lambda_loader y lambda_daily_extract
-│   └── database_schema.md                    # Documentación del modelo de datos
+|   ├── screen_shots/                         # screen shots Lambdas y FasAPI
+│   ├── aws_deployments_instructions.md       # Instrucciones aws lambda_loader y lambda_daily_extract
+│   ├── database_schema_sql.md                # sql: esquema data base 
+│   ├── api_documentation.md                  # documentación FastAPI con los endpoints
+│   └── test_endpoints.txt                    # Preguntas preparadas para probar la FastAPI
 │
 ├── notebooks/                                # Jupyter Notebooks
 │   └── etl_notebooks/
@@ -342,8 +345,8 @@ rawg-aws-ml-analytics/
 |   |
 |   └── models_notebooks/
 |        ├──01_text_to_sql.ipynb              # Pruebas text_to_sql
-|        ├──02_feature_engineering.ipynb
-|        └──03_modelado.ipynb
+|        ├──02_feature_engineering.ipynb      # Features entrenamiento modelo predicción
+|        └──03_modelado.ipynb                 # Preprocesado y entrenamiento de modelo predicción
 |   
 │
 ├── utils/                                    # Utilidades

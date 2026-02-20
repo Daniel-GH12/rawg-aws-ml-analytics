@@ -2,12 +2,17 @@ data/
 .ipynb_checkpoints/
 **/.ipynb_checkpoints/
 *.pem
+
+__pycache__/
+*.pyc
+
 # Notebooks personales de cristina
 *_cris.ipynb
 
 #Ficheros personales de cristina
 **_cris.py
 **_secrets.py
+aws_secrets.py
 # Cualquier carpeta llamada notas_cris, en cualquier parte del repo
 **/notas_cris/
 

@@ -1,0 +1,48 @@
+1. El oráculo: /predict
+
+El ÉXITO seguro:
+
+JSON
+{
+  "playtime": 50.0,
+  "suggestions_count": 800,
+  "release_month": 10,
+  "genres": "Action,RPG",
+  "platforms": "PC,PlayStation 5",
+  "developers": "Valve",
+  "tags": "Singleplayer,Atmospheric"
+}
+
+El FRACASO o Indie modesto:
+
+JSON
+{
+  "playtime": 1.5,
+  "suggestions_count": 5,
+  "release_month": 3,
+  "genres": "Puzzle",
+  "platforms": "PC",
+  "developers": "Solo Dev",
+  "tags": "Minimalist"
+}
+
+2. El experto en datos: /ask-text
+
+"Dime el nombre y el rating de los 10 juegos con mejor puntuación de la base de datos, ordenados de mayor a menor."
+
+"¿Cuántos juegos hay registrados que pertenezcan al género 'Action'? Dame solo el número total."
+
+"Muestra una lista de todos los juegos desarrollados por 'CD Projekt RED' y dime su año de lanzamiento."
+
+"¿Cuáles son los 5 juegos que tienen más usuarios en estado 'beaten' (terminados)?"
+
+
+3. El artista: /ask-visual
+
+"Genera un gráfico de barras con los 12 juegos que tienen más tiempo de juego (playtime), ignorando los que tengan cero."
+
+"Muestra visualmente los 10 juegos con más valor en 'toplay' de la tabla games_status, filtrando los que no tengan datos."
+
+"Haz un gráfico que compare cuántos juegos hay por cada plataforma (PC, PlayStation, etc) en la base de datos."
+
+"Muestra en un gráfico el rating promedio para cada género de juego, ordenado por nota."
