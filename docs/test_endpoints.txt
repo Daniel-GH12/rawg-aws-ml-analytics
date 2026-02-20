@@ -1,30 +1,55 @@
 1. El oráculo: /predict
 
-El ÉXITO seguro:
+Prueba 1: Éxito
 
 JSON
 {
-  "playtime": 50.0,
-  "suggestions_count": 800,
-  "release_month": 10,
-  "genres": "Action,RPG",
-  "platforms": "PC,PlayStation 5",
-  "developers": "Valve",
-  "tags": "Singleplayer,Atmospheric"
+  "num_platforms": 5,
+  "num_stores": 3,
+  "num_genres": 2,
+  "num_tags": 10,
+  "years_since_release": 2,
+  "recency_score": 2,
+  "esrb_name": "Everyone",
+  "release_year": "2022",
+  "has_multiplayer": "1",
+  "has_singleplayer": "1",
+  "is_indie": "0"
 }
 
-El FRACASO o Indie modesto:
+Prueba 2: Juego Indie con Menos Features
 
 JSON
 {
-  "playtime": 1.5,
-  "suggestions_count": 5,
-  "release_month": 3,
-  "genres": "Puzzle",
-  "platforms": "PC",
-  "developers": "Solo Dev",
-  "tags": "Minimalist"
+  "num_platforms": 2,
+  "num_stores": 1,
+  "num_genres": 1,
+  "num_tags": 5,
+  "years_since_release": 5,
+  "recency_score": 5,
+  "esrb_name": "Teen",
+  "release_year": "2019",
+  "has_multiplayer": "0",
+  "has_singleplayer": "1",
+  "is_indie": "1"
 }
+
+Ejemplo 3: Juego AAA Reciente
+JSON
+{
+  "num_platforms": 8,
+  "num_stores": 6,
+  "num_genres": 3,
+  "num_tags": 20,
+  "years_since_release": 0,
+  "recency_score": 0,
+  "esrb_name": "Mature",
+  "release_year": "2024",
+  "has_multiplayer": "1",
+  "has_singleplayer": "1",
+  "is_indie": "0"
+}
+
 
 2. El experto en datos: /ask-text
 
