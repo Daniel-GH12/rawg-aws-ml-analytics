@@ -145,6 +145,8 @@ curl http://localhost:8000/health
 ### POST `/predict`
 Predice si un videojuego será un **éxito** usando el modelo XGBoost.
 
+> Los campos `release_year`, `has_multiplayer`, `has_singleplayer` e `is_indie` deben enviarse como **enteros**, no como strings.
+
 **Ejemplo:**
 ```bash
 curl -X POST http://localhost:8000/predict \
@@ -157,10 +159,10 @@ curl -X POST http://localhost:8000/predict \
     "years_since_release": 2,
     "recency_score": 2,
     "esrb_name": "Everyone",
-    "release_year": "2022",
-    "has_multiplayer": "1",
-    "has_singleplayer": "1",
-    "is_indie": "0"
+    "release_year": 2022,
+    "has_multiplayer": 1,
+    "has_singleplayer": 1,
+    "is_indie": 0
   }'
 ```
 
@@ -254,6 +256,42 @@ curl "http://localhost:8000/ask-text?question=¿Cuál%20es%20el%20juego%20mejor%
 
 ---
 
+##  Modelo de Predicción
+
+### Features utilizadas (11)
+
+| # | Feature | Tipo | Descripción |
+|---|---------|------|-------------|
+| 0 | `num_platforms` | int | Número de plataformas |
+| 1 | `num_stores` | int | Número de tiendas |
+| 2 | `num_genres` | int | Número de géneros |
+| 3 | `num_tags` | int | Número de tags |
+| 4 | `years_since_release` | int | Años desde lanzamiento |
+| 5 | `recency_score` | int | Score de antigüedad |
+| 6 | `esrb_name` | str | Clasificación ESRB |
+| 7 | `release_year` | int | Año de lanzamiento |
+| 8 | `has_multiplayer` | int (0/1) | Tiene multijugador |
+| 9 | `has_singleplayer` | int (0/1) | Tiene un jugador |
+| 10 | `is_indie` | int (0/1) | Es indie |
+
+### Métricas del modelo
+
+| Clase | Precision | Recall | F1-score |
+|-------|-----------|--------|----------|
+| 0 — No Éxito | 0.9194 | 0.8917 | 0.9053 |
+| 1 — Éxito | 0.7121 | 0.7740 | 0.7417 |
+| **Accuracy** | | | **0.8614** |
+
+### Umbral de decisión
+
+El umbral por defecto de scikit-learn (0.5) no es óptimo para este modelo. Se calculó el umbral óptimo maximizando el F1-score mediante `precision_recall_curve`:
+
+- **Umbral por defecto:** 0.50
+- **Umbral óptimo aplicado:** 0.5937
+- **Accuracy con umbral óptimo:** 86.14%
+
+---
+
 ##  Notas
 
 - La API usa **Gemini 2.5 Flash** (gratuito con límites)
@@ -282,3 +320,28 @@ curl "http://localhost:8000/ask-text?question=¿Cuál%20es%20el%20juego%20mejor%
 **SQL incorrecto generado:**
 - Reformula la pregunta con más detalle
 - Para `/ask-visual`, asegúrate de que la pregunta implica una comparación o ranking
+
+---
+
+## Limitaciones conocidas
+
+### Poder predictivo del modelo
+
+Las features disponibles sin data leakage tienen **poder predictivo limitado** para distinguir con precisión éxito/fracaso en casos límite.
+
+Las features más predictivas fueron excluidas intencionadamente:
+
+| Feature excluida | Motivo |
+|-----------------|--------|
+| `ratings_count` | Se deriva directamente del éxito del juego |
+| `game_rating` | Consecuencia del éxito, no causa |
+| `engagement_score` | Calculada a partir del target |
+| `owned`, `playing` | Métricas post-lanzamiento |
+
+Incluirlas produciría un modelo casi determinista (accuracy ~99%) pero no válido: estaría entrenando y evaluando con la misma información (*data leakage*).
+
+### Comportamiento esperado
+
+El modelo opera correctamente con **accuracy del 86%** a nivel global. Sin embargo, en casos con valores bajos en todas las features, puede tender a predecir éxito debido a que el rango de probabilidades es estrecho con las features disponibles.
+
+Este es un **trade-off conocido y aceptado** entre evitar data leakage y maximizar el poder predictivo.

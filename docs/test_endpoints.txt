@@ -17,21 +17,21 @@ JSON
   "is_indie": "0"
 }
 
-Prueba 2: Juego Indie con Menos Features
+Prueba 2: Fracaso -> Éxito (limitación del modelo)
 
 JSON
 {
-  "num_platforms": 2,
+  "num_platforms": 1,
   "num_stores": 1,
   "num_genres": 1,
-  "num_tags": 5,
+  "num_tags": 2,
   "years_since_release": 5,
-  "recency_score": 5,
+  "recency_score": 1,
   "esrb_name": "Teen",
   "release_year": "2019",
   "has_multiplayer": "0",
   "has_singleplayer": "1",
-  "is_indie": "1"
+  "is_indie": "0"
 }
 
 Ejemplo 3: Juego AAA Reciente
@@ -50,14 +50,25 @@ JSON
   "is_indie": "0"
 }
 
+Ejemplo 4: Juego B Reciente
+{
+  "num_platforms": 1,
+  "num_stores": 2,
+  "num_genres": 1,
+  "num_tags": 30,
+  "years_since_release": 0,
+  "recency_score": 0,
+  "esrb_name": "+10",
+  "release_year": "2024",
+  "has_multiplayer": "0",
+  "has_singleplayer": "1",
+  "is_indie": "0"
+}
+
 
 2. El experto en datos: /ask-text
 
-"Dime el nombre y el rating de los 10 juegos con mejor puntuación de la base de datos, ordenados de mayor a menor."
-
 "¿Cuántos juegos hay registrados que pertenezcan al género 'Action'? Dame solo el número total."
-
-"Muestra una lista de todos los juegos desarrollados por 'CD Projekt RED' y dime su año de lanzamiento."
 
 "¿Cuáles son los 5 juegos que tienen más usuarios en estado 'beaten' (terminados)?"
 

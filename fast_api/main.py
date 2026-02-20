@@ -42,6 +42,7 @@ sns.set_palette("husl")
 
 # Ruta al directorio de modelos
 MODELS_DIR = Path(__file__).parent.parent / 'models'
+PREDICTION_THRESHOLD = 0.5937
 
 def load_latest_model():
     """
@@ -62,7 +63,7 @@ def load_latest_model():
         print(f"Modelo cargado: {latest_model_file.name}")
         
         # Cargar features
-        features_file = MODELS_DIR / 'success_features.pkl'
+        features_file = MODELS_DIR / 'success_features.pkl'      
         
         if not features_file.exists():
             print(f"Archivo de features no encontrado")
@@ -138,13 +139,13 @@ class GameInput(BaseModel):
     # 6: esrb_name
     esrb_name: str = Field(..., description="Clasificación ESRB")
     # 7: release_year
-    release_year: str = Field(..., description="Año de lanzamiento")
+    release_year: int = Field(..., description="Año de lanzamiento")
     # 8: has_multiplayer
-    has_multiplayer: str = Field(..., description="Tiene multijugador: '0' o '1'")
+    has_multiplayer: int = Field(..., description="Tiene multijugador: 0 o 1")
     # 9: has_singleplayer
-    has_singleplayer: str = Field(..., description="Tiene un jugador: '0' o '1'")
+    has_singleplayer: int = Field(..., description="Tiene un jugador: 0 o 1")
     # 10: is_indie
-    is_indie: str = Field(..., description="Es indie: '0' o '1'")
+    is_indie: int = Field(..., description="Es indie: 0 o 1")
     
     class Config:
         json_schema_extra = {
@@ -156,10 +157,10 @@ class GameInput(BaseModel):
                 "years_since_release": 2,
                 "recency_score": 2,
                 "esrb_name": "Everyone",
-                "release_year": "2022",
-                "has_multiplayer": "1",
-                "has_singleplayer": "1",
-                "is_indie": "0"
+                "release_year": 2022,
+                "has_multiplayer": 1,
+                "has_singleplayer": 1,
+                "is_indie": 0
             }
         }
 class PredictionResponse(BaseModel):
@@ -231,10 +232,10 @@ def create_features_dataframe(game_input: GameInput) -> pd.DataFrame:
         'years_since_release': game_input.years_since_release,
         'recency_score': game_input.recency_score,
         'esrb_name': game_input.esrb_name,
-        'release_year': game_input.release_year,
-        'has_multiplayer': game_input.has_multiplayer,
-        'has_singleplayer': game_input.has_singleplayer,
-        'is_indie': game_input.is_indie,
+        'release_year': int(game_input.release_year),
+        'has_multiplayer': int(game_input.has_multiplayer),
+        'has_singleplayer': int(game_input.has_singleplayer),
+        'is_indie': int(game_input.is_indie),
     }
     
     # Crear DataFrame
@@ -246,14 +247,11 @@ def create_features_dataframe(game_input: GameInput) -> pd.DataFrame:
     
     # Asegurar tipos correctos
     numeric_cols = ['num_platforms', 'num_stores', 'num_genres', 'num_tags', 
-                    'years_since_release', 'recency_score']
+                    'years_since_release', 'recency_score','release_year','has_multiplayer','has_singleplayer', 'is_indie']
     for col in numeric_cols:
         df[col] = df[col].astype('int64')
-    
-    categorical_cols = ['esrb_name', 'release_year', 'has_multiplayer', 
-                       'has_singleplayer', 'is_indie']
-    for col in categorical_cols:
-        df[col] = df[col].astype('object')
+
+    df['esrb_name'] = df['esrb_name'].astype('object')
     
     return df
 
@@ -365,7 +363,8 @@ def root():
         "description":"API con predicción ML (XGBoost) y consultas en lenguaje natural (Gemini)",
         "endpoints": {
             "predict": "POST /predict - Predice éxito de videojuego",
-            "visual": "GET /ask-visual - Consulta con gráfico",
+            "visual": "GET /ask-visual - Consulta con gráfico en int64",
+            "visual_image": "GET/ask-visual-image - Consulta con gráfico"
             "text": "GET /ask-text - Consulta con respuesta textual",
             "health": "GET /health - Estado del servicio",
             "docs": "GET /docs - Documentación interactiva"
@@ -413,11 +412,10 @@ def predict_success(game_input: GameInput):
         X = create_features_dataframe(game_input)
         
         # El Pipeline hace preprocesamiento + predicción automáticamente
-        prediction_class = int(ML_MODEL.predict(X)[0])
-        prediction_proba = ML_MODEL.predict_proba(X)[0]
-        
+        prediction_proba = ML_MODEL.predict_proba(X)[0]      
         prob_no_success = float(prediction_proba[0])
         prob_success = float(prediction_proba[1])
+        prediction_class = 1 if prob_success >= PREDICTION_THRESHOLD else 0
         
         confidence = get_confidence_level(prob_success)
         
