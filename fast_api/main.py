@@ -364,7 +364,7 @@ def root():
         "endpoints": {
             "predict": "POST /predict - Predice éxito de videojuego",
             "visual": "GET /ask-visual - Consulta con gráfico en int64",
-            "visual_image": "GET/ask-visual-image - Consulta con gráfico"
+            "visual_image": "GET /ask-visual-image - Consulta con gráfico",
             "text": "GET /ask-text - Consulta con respuesta textual",
             "health": "GET /health - Estado del servicio",
             "docs": "GET /docs - Documentación interactiva"
