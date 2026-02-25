@@ -1,43 +1,48 @@
-# RAWG Video Games Analytics - AWS ETL Pipeline
+# RAWG Video Games Analytics — AWS End-to-End System
 
-Pipeline completo de extracción, transformación y carga (ETL) de datos de videojuegos desde la API de RAWG hacia una base de datos PostgreSQL en AWS RDS, con procesamiento serverless mediante AWS Lambda. Y análisis de videojuegos usando AWS, PostgreSQL, Gemini AI y Hugging Face.
+**End-to-end Data Engineering & ML system deployed on AWS.**  
+ETL pipeline + PostgreSQL RDS + LLM-powered Text-to-SQL API + XGBoost ML prediction, deployed on EC2.
+
+---
 
 ## 📋 Índice
 
 - [Descripción](#descripción)
 - [Arquitectura](#arquitectura)
 - [Fase 1: ETL Pipeline](#fase-1-etl-pipeline)
-- [Fase 2: API Text-to-SQL](#fase-2-api-text-to-sql)
+- [Fase 2: API — Predicción ML y Text-to-SQL](#fase-2-api--predicción-ml-y-text-to-sql)
 - [Fase 3: Despliegue en EC2](#fase-3-despliegue-en-ec2)
 - [Tecnologías](#tecnologías)
 - [Instalación](#instalación)
 - [Uso](#uso)
 - [Estructura del Proyecto](#estructura-del-proyecto)
+- [Seguridad](#seguridad)
+- [Limitaciones conocidas](#limitaciones-conocidas)
+- [Autora](#autora)
 
 ---
 
 ## Descripción del Proyecto
-Sistema de análisis de datos de videojuegos que combina:
 
-1. **ETL automatizado en AWS** para extracción diaria de datos de RAWG API
-2. **API REST con Text-to-SQL** usando modelos de IA (Gemini + Hugging Face)
-3. **Visualizaciones automáticas** generadas dinámicamente
-4. **Despliegue en AWS EC2** con conexión a RDS PostgreSQL
+Sistema completo de análisis de datos de videojuegos que combina:
+
+1. **ETL automatizado en AWS** — extracción diaria de ~20.000 videojuegos desde RAWG API
+2. **API REST multifuncional** — predicción ML con XGBoost y consultas en lenguaje natural via Gemini AI
+3. **Despliegue en producción** — FastAPI corriendo en EC2 con conexión a RDS PostgreSQL gestionada por AWS Secrets Manager
 
 ### Características Principales
 
-- ✅ Extracción automática de ~20,000 videojuegos desde RAWG API
-- ✅ Procesamiento y almacenamiento en PostgreSQL RDS
-- ✅ Consultas en lenguaje natural (español/inglés)
-- ✅ Generación automática de SQL con Gemini AI
-- ✅ Clasificación de intenciones con Hugging Face
-- ✅ Gráficos generados automáticamente con Matplotlib
-- ✅ Respuestas en lenguaje natural
+- ✅ Extracción automática de ~20.000 videojuegos desde RAWG API
+- ✅ Almacenamiento en PostgreSQL RDS (AWS)
+- ✅ Predicción de éxito de videojuegos con XGBoost (accuracy 86%)
+- ✅ Consultas en lenguaje natural con Gemini AI (Text-to-SQL)
+- ✅ Visualizaciones automáticas con Matplotlib
 - ✅ API desplegada en EC2 y accesible públicamente
 
 ---
 
 ## Arquitectura del Sistema
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                         FASE 1: ETL                             │
@@ -52,13 +57,13 @@ Sistema de análisis de datos de videojuegos que combina:
 ┌─────────────────────────────────────────────────────────────────┐
 │                      FASE 2: API ML                             │
 │                                                                 │
-│  Usuario → FastAPI → Gemini (Text-to-SQL) → PostgreSQL         │
+│  Usuario → FastAPI → XGBoost (predicción)                      │
 │                   ↓                                             │
-│            Hugging Face (Clasificación)                         │
+│            Gemini AI (Text-to-SQL) → PostgreSQL RDS            │
 │                   ↓                                             │
 │            Matplotlib (Visualización)                           │
 │                   ↓                                             │
-│            Respuesta JSON + Gráfico Base64                      │
+│            Respuesta JSON / Gráfico PNG                         │
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
@@ -80,30 +85,29 @@ Sistema de análisis de datos de videojuegos que combina:
 
 | Servicio | Función | Configuración |
 |----------|---------|---------------|
-| **Lambda Extractor** | Extrae datos de RAWG API | Runtime: Python 3.11, 512 MB RAM |
-| **Lambda Transformer** | Transforma y limpia datos | Runtime: Python 3.11, 512 MB RAM |
-| **Lambda Loader** | Carga datos en PostgreSQL | Runtime: Python 3.11, 512 MB RAM |
-| **RDS PostgreSQL** | Base de datos principal | db.t3.micro, PostgreSQL 14 |
-| **EventBridge** | Orquestación automática | Trigger: cron(0 2 * * ? *) |
-| **Secrets Manager** | Credenciales DB + API | Rotación: Manual |
+| **Lambda Extractor** | Extrae datos de RAWG API | Python 3.11, 512 MB RAM |
+| **Lambda Transformer** | Transforma y limpia datos | Python 3.11, 512 MB RAM |
+| **Lambda Loader** | Carga datos en PostgreSQL | Python 3.11, 512 MB RAM |
+| **RDS PostgreSQL** | Base de datos principal | db.t3.micro, PostgreSQL 16 |
+| **EventBridge** | Orquestación automática | cron(0 2 * * ? *) — cada 24h |
+| **Secrets Manager** | Credenciales DB | Rotación: Manual |
 
 ### Esquema de Base de Datos
 
-**Tablas principales:**
-- `games` - Información de videojuegos (20,000+ registros)
-- `genres`, `platforms`, `tags`, `stores` - Catálogos
-- `games_status` - Estado de juego (playing, owned, etc.)
-- Tablas relacionales N:M para vincular juegos con géneros, plataformas, etc.
+**Tablas principales:** `games`, `genres`, `platforms`, `tags`, `stores`, `games_status` y tablas relacionales N:M.
 
 **Campos clave:**
-- `game_rating` (NUMERIC 4,2) - Rating promedio
-- `released_ym` (CHAR 7) - Fecha lanzamiento "YYYY-MM"
-- `game_added` (BIGINT) - Veces agregado a colecciones
-- `playtime` (INTEGER) - Tiempo promedio de juego
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `game_rating` | NUMERIC(4,2) | Rating promedio |
+| `released_ym` | CHAR(7) | Fecha lanzamiento "YYYY-MM" |
+| `game_added` | BIGINT | Veces agregado a colecciones |
+| `playtime` | INTEGER | Tiempo promedio de juego |
 
 ---
 
-## Fase 2: API Text-to-SQL y Predicción ML
+## Fase 2: API — Predicción ML y Text-to-SQL
 
 ### URLs de acceso
 
@@ -117,30 +121,22 @@ Sistema de análisis de datos de videojuegos que combina:
 ### Endpoints
 
 #### POST `/predict`
+Predice si un videojuego será un éxito usando el modelo XGBoost (11 features, accuracy 86%).
 
-Predice si un videojuego será un éxito usando el modelo XGBoost entrenado.
-
-| URL | Entorno |
-|-----|---------|
-| `http://localhost:8000/predict` | Local |
-| `http://<EC2-IP-PUBLICA>:8000/predict` | EC2 |
+| Entorno | URL |
+|---------|-----|
+| Local | `http://localhost:8000/predict` |
+| EC2 | `http://<EC2-IP-PUBLICA>:8000/predict` |
 
 **Ejemplo:**
 ```bash
 curl -X POST http://localhost:8000/predict \
   -H "Content-Type: application/json" \
   -d '{
-    "num_platforms": 5,
-    "num_stores": 3,
-    "num_genres": 2,
-    "num_tags": 10,
-    "years_since_release": 2,
-    "recency_score": 2,
-    "esrb_name": "Everyone",
-    "release_year": 2022,
-    "has_multiplayer": 1,
-    "has_singleplayer": 1,
-    "is_indie": 0
+    "num_platforms": 5, "num_stores": 3, "num_genres": 2,
+    "num_tags": 10, "years_since_release": 2, "recency_score": 2,
+    "esrb_name": "Everyone", "release_year": 2022,
+    "has_multiplayer": 1, "has_singleplayer": 1, "is_indie": 0
   }'
 ```
 
@@ -156,22 +152,19 @@ curl -X POST http://localhost:8000/predict \
 }
 ```
 
-> ℹ️ Ver `fast_api/README.md` para detalles sobre las features, métricas del modelo y limitaciones conocidas.
-
 ---
 
 #### GET `/ask-visual`
+Pregunta en lenguaje natural → SQL generado por Gemini → gráfico en base64 PNG.
 
-Pregunta en lenguaje natural → SQL → Gráfico
-
-| URL | Entorno |
-|-----|---------|
-| `http://localhost:8000/ask-visual` | Local |
-| `http://<EC2-IP-PUBLICA>:8000/ask-visual` | EC2 |
+| Entorno | URL |
+|---------|-----|
+| Local | `http://localhost:8000/ask-visual` |
+| EC2 | `http://<EC2-IP-PUBLICA>:8000/ask-visual` |
 
 **Ejemplo:**
 ```bash
-GET /ask-visual?question=Top 10 géneros con más juegos
+curl "http://localhost:8000/ask-visual?question=Top%2010%20géneros%20con%20más%20juegos"
 ```
 
 **Respuesta:**
@@ -185,193 +178,118 @@ GET /ask-visual?question=Top 10 géneros con más juegos
 }
 ```
 
+---
+
 #### GET `/ask-visual-image`
+Igual que `/ask-visual` pero devuelve la **imagen PNG directamente** — se puede abrir en el navegador.
 
-Igual que `/ask-visual` pero devuelve la imagen PNG directamente — se puede abrir en el navegador.
+| Entorno | URL |
+|---------|-----|
+| Local | `http://localhost:8000/ask-visual-image` |
+| EC2 | `http://<EC2-IP-PUBLICA>:8000/ask-visual-image` |
 
-| URL | Entorno |
-|-----|---------|
-| `http://localhost:8000/ask-visual-image` | Local |
-| `http://<EC2-IP-PUBLICA>:8000/ask-visual-image` | EC2 |
+```
+http://localhost:8000/ask-visual-image?question=Top 10 géneros con más juegos
+```
+
+---
 
 #### GET `/ask-text`
+Pregunta en lenguaje natural → SQL generado por Gemini → respuesta textual.
 
-Pregunta en lenguaje natural → SQL → Respuesta textual
-
-| URL | Entorno |
-|-----|---------|
-| `http://localhost:8000/ask-text` | Local |
-| `http://<EC2-IP-PUBLICA>:8000/ask-text` | EC2 |
+| Entorno | URL |
+|---------|-----|
+| Local | `http://localhost:8000/ask-text` |
+| EC2 | `http://<EC2-IP-PUBLICA>:8000/ask-text` |
 
 **Ejemplo:**
 ```bash
-GET /ask-text?question=¿Cuál es el juego mejor valorado?
+curl "http://localhost:8000/ask-text?question=¿Cuál%20es%20el%20juego%20mejor%20valorado?"
 ```
 
 **Respuesta:**
 ```json
 {
   "question": "¿Cuál es el juego mejor valorado?",
-  "sql_generated": "SELECT game_name AS juego, game_rating...",
-  "answer": "El juego mejor valorado es The Witcher 3 con 4.89...",
+  "sql_generated": "SELECT game_name, game_rating FROM rawg.games ORDER BY game_rating DESC LIMIT 1",
+  "answer": "El juego mejor valorado es The Witcher 3 con una puntuación de 4.89.",
   "data": [...],
   "rows_count": 1
 }
 ```
 
-### Modelos de IA Utilizados
-
-| Modelo | Uso | Proveedor |
-|--------|-----|-----------|
-| **Gemini 2.5 Flash** | Text-to-SQL dinámico | Google AI |
-| **paraphrase-MiniLM-L3-v2** | Clasificación de intención | Hugging Face |
+---
 
 ### Ejemplos de Preguntas Soportadas
 
-**Visualización:**
+**Para `/ask-visual` y `/ask-visual-image`:**
 - "Top 10 géneros con más juegos"
 - "Evolución de juegos lanzados por año desde 2015"
 - "Plataformas más populares"
-- "Rating promedio por año"
+- "Rating promedio por género"
 
-**Textual:**
+**Para `/ask-text`:**
 - "¿Cuál es el juego mejor valorado?"
 - "¿Cuántos juegos hay en total?"
 - "¿Qué género tiene mejor rating promedio?"
-- "¿Cuáles son los juegos con más playtime?"
+- "¿Cuáles son los 5 juegos con más playtime?"
 
 ---
 
 ## Fase 3: Despliegue en EC2
 
-> 🆕 **Sección nueva**
-
-### Configuración de la Instancia EC2
+### Configuración de la Instancia
 
 | Parámetro | Valor |
 |-----------|-------|
 | **AMI** | Amazon Linux 2023 (kernel-6.1) |
 | **Tipo** | t2.micro (capa gratuita) |
 | **Región** | eu-north-1 (Estocolmo) |
-| **Almacenamiento** | Standard |
 | **Security Group** | SSH (22), HTTP (80), Custom TCP (8000) |
-| **Acceso SSH** | Par de claves `.pem` |
+| **Credenciales RDS** | AWS Secrets Manager via IAM Role |
 
-### Software instalado en EC2
-
-```bash
-# Actualización del sistema
-sudo yum update -y
-
-# Herramientas base
-sudo yum install -y git python3 tmux nc
-
-# Dependencias Python
-pip install -r requirements.txt
-```
-
-### Despliegue de la API
+### Pasos de despliegue
 
 ```bash
-# 1. Clonar repositorio (rama específica)
+# 1. Clonar rama del proyecto
 git clone -b cristina https://github.com/Daniel-GH12/rawg-aws-ml-analytics.git
 
-# 2. Exportar Gemini API Key directamente en la terminal
-export GEMINI_API_KEY=tu_api_key
-# Para que persista entre sesiones, añadir a ~/.bashrc:
-echo 'export GEMINI_API_KEY=tu_api_key' >> ~/.bashrc
-source ~/.bashrc
+# 2. Instalar dependencias
+cd rawg-aws-ml-analytics/fast_api
+pip install -r requirements.txt
 
-# 3. Copiar modelos via SCP (desde terminal local, no están en GitHub)
-scp -i "clave.pem" models/xgb_success_model_*.pkl ec2-user@<EC2-IP>:/home/ec2-user/rawg-aws-ml-analytics/models/
-scp -i "clave.pem" models/success_features.pkl ec2-user@<EC2-IP>:/home/ec2-user/rawg-aws-ml-analytics/models/
+# 3. Exportar Gemini API Key
+export GEMINI_API_KEY=tu_api_key
 
 # 4. Lanzar API
-cd rawg-aws-ml-analytics/fast_api
 uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-> ⚠️ Las credenciales de RDS **no se copian via SCP** — se obtienen automáticamente desde AWS Secrets Manager gracias al IAM Role asignado a la instancia. Ver sección [Conexión EC2 → RDS](#conexión-ec2--rds-postgresql).
+> ℹ️ Las credenciales de RDS se obtienen automáticamente via **IAM Role + Secrets Manager**, sin variables de entorno ni archivos de configuración. Ver `docs/aws_deployments_instructions.md` para instrucciones detalladas.
 
-### Conexión EC2 → RDS PostgreSQL
-
-Las credenciales de RDS se gestionan a través de **AWS Secrets Manager**, sin almacenar datos sensibles en el código ni en variables de entorno.
-
-**Configuración de permisos:**
-
-1. Se creó un **IAM Role** (`ec2-rawg-role`) con política `SecretsManagerReadWrite`
-2. El rol se asignó a la instancia EC2 desde **EC2 → Actions → Security → Modify IAM role**
-3. En el Security Group de RDS se usó el botón **"Set up EC2 connection"** — configura automáticamente el acceso al puerto 5432 desde EC2
+### Conexión EC2 → RDS
 
 | Componente | Configuración |
 |-----------|--------------|
-| **IAM Role** | ec2-rawg-role con SecretsManagerReadWrite |
-| **Security Group RDS** | Inbound PostgreSQL (5432) desde EC2 Security Group |
-| **Credenciales** | Gestionadas por AWS Secrets Manager |
-
-### Acceso a la API en EC2
-
-| Swagger UI | http://\<EC2-IP-PUBLICA\>:8000/docs |
-|------------|-------------------------------------|
-| ReDoc | http://\<EC2-IP-PUBLICA\>:8000/redoc |
-
-> ⚠️ La IP pública cambia en cada reinicio de la instancia EC2.
-
-### ⚠️ Dificultades encontradas y soluciones
-
-| Problema | Causa | Solución |
-|----------|-------|---------|
-| `Killed` durante `pip install xgboost` | t2.micro tiene solo 1GB RAM — insuficiente para instalar XGBoost (297MB) | Crear memoria swap: `sudo dd if=/dev/zero of=/swapfile bs=128M count=16 && sudo mkswap /swapfile && sudo swapon /swapfile` |
-| `ModuleNotFoundError: utils.aws_secrets` | Archivo sensible excluido de GitHub via `.gitignore` | Copiar via SCP desde local a EC2 |
-| `'super' object has no attribute '__sklearn_tags__'` | Incompatibilidad entre scikit-learn 1.6.1 y Python 3.9 de Amazon Linux 2023 | Usar `scikit-learn==1.5.2` y reentrenar el modelo en local con esa versión antes de subir el `.pkl` |
-| `Unable to locate credentials` | EC2 sin permisos para acceder a Secrets Manager | Crear IAM Role con política `SecretsManagerReadWrite` y asignarlo a la instancia EC2 |
-| `connection timeout` a RDS | Security Group de RDS no permitía conexiones desde EC2 | Usar botón "Set up EC2 connection" en la consola de RDS |
-| `GEMINI_API_KEY` se pierde al reconectar | Las variables de entorno no persisten entre sesiones SSH | Añadir al `~/.bashrc`: `echo 'export GEMINI_API_KEY=...' >> ~/.bashrc` |
+| **IAM Role** | `ec2-rawg-role` con política `SecretsManagerReadWrite` |
+| **Security Group RDS** | Inbound PostgreSQL (5432) desde EC2 — configurado via "Set up EC2 connection" |
+| **Credenciales** | Gestionadas automáticamente por AWS Secrets Manager |
 
 ---
 
 ## Tecnologías
 
-### Backend
-- **FastAPI** - Framework web
-- **Python 3.11** - Lenguaje principal (local) / Python 3.9 (EC2 Amazon Linux 2023)
-- **psycopg2** - Conexión PostgreSQL
-- **pandas** - Análisis de datos
-
-### Machine Learning
-- **Gemini API** (Google) - Text-to-SQL
-- **Hugging Face Transformers** - Clasificación NLP
-- **sentence-transformers** - Embeddings semánticos
-
-### Visualización
-- **Matplotlib** - Gráficos estáticos
-- **Seaborn** - Estilos visuales
-
-### Infraestructura AWS
-- **Lambda** - Funciones serverless
-- **RDS PostgreSQL** - Base de datos
-- **EventBridge** - Orquestación
-- **Secrets Manager** - Gestión de credenciales
-- **EC2** - Hosting de FastAPI (t2.micro, Amazon Linux 2023)
-- **IAM Roles** - Gestión de permisos entre servicios AWS
-
-### **Lenguajes y Frameworks**
-- **Python 3.11**
-- **pandas** - Transformación de datos
-- **psycopg2** - Conexión a PostgreSQL
-- **SQLAlchemy** - ORM y generación de queries
-- **boto3** - SDK de AWS
-- **requests** - Consumo de API REST
-
-### **Base de Datos**
-- **PostgreSQL 16** en AWS RDS
-- **pgAdmin 4** - Administración y queries interactivas
-- Esquema relacional normalizado
-- Índices optimizados para consultas analíticas
-
-### **Desarrollo y Testing**
-- **Jupyter Notebook** - Prototipado y análisis exploratorio
-- **Git/GitHub** - Control de versiones
+| Categoría | Tecnologías |
+|-----------|------------|
+| **Lenguaje** | Python 3.11 |
+| **API** | FastAPI, uvicorn |
+| **ML** | XGBoost, scikit-learn 1.5.2, pandas |
+| **IA generativa** | Gemini 2.5 Flash (Text-to-SQL), Hugging Face (clasificación de intención) |
+| **Visualización** | Matplotlib, Seaborn |
+| **Base de datos** | PostgreSQL 16 (AWS RDS), psycopg2, SQLAlchemy |
+| **Infraestructura AWS** | EC2, Lambda, RDS, EventBridge, Secrets Manager, IAM |
+| **DevOps** | Git/GitHub, SCP, SSH |
+| **Desarrollo** | Jupyter Notebook, pgAdmin 4 |
 
 ---
 
@@ -380,49 +298,36 @@ Las credenciales de RDS se gestionan a través de **AWS Secrets Manager**, sin a
 ### Prerrequisitos
 
 - Python 3.11+
-- Cuenta AWS con permisos para: Lambda, S3, RDS, Secrets Manager, EC2, IAM
+- Cuenta AWS con permisos para Lambda, RDS, Secrets Manager, EC2, IAM
 - API Key de RAWG ([obtener aquí](https://rawg.io/apidocs))
-- API Key de Gemini (https://aistudio.google.com/apikey)
+- API Key de Gemini ([obtener aquí](https://aistudio.google.com/apikey))
 
 ### Paso 1: Clonar Repositorio
 ```bash
-git clone https://github.com/tu-usuario/rawg-aws-ml-analytics.git
+git clone https://github.com/Daniel-GH12/rawg-aws-ml-analytics.git
 cd rawg-aws-ml-analytics
 ```
 
 ### Paso 2: Instalar Dependencias
 ```bash
-# Crear entorno virtual
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# Instalar dependencias
 pip install -r requirements.txt
 ```
 
-### Paso 3: Configurar credenciales
+### Paso 3: Configurar Credenciales
 
-Las credenciales de la base de datos **no se almacenan en `.env`** ni en variables de entorno. Se obtienen automáticamente desde **AWS Secrets Manager** en cada conexión mediante `utils/aws_secrets.py`.
+Las credenciales de la base de datos se obtienen automáticamente desde **AWS Secrets Manager** — no se usan ficheros `.env` ni variables de entorno para la BD.
 
-Para que funcione necesitas:
-
-**Credenciales AWS configuradas** en tu entorno local:
 ```bash
-# Opción A: AWS CLI
+# Credenciales AWS (local)
 aws configure
 
-# Opción B: Variables de entorno
-export AWS_ACCESS_KEY_ID=tu_access_key
-export AWS_SECRET_ACCESS_KEY=tu_secret_key
-export AWS_DEFAULT_REGION=eu-north-1
-```
-
-**Gemini API Key** exportada directamente en la terminal:
-```bash
+# Gemini API Key
 export GEMINI_API_KEY=tu_gemini_api_key
 ```
 
-> ℹ️ En EC2, las credenciales AWS se gestionan mediante un **IAM Role** asignado a la instancia — sin necesidad de exportar `AWS_ACCESS_KEY_ID` ni `AWS_SECRET_ACCESS_KEY`. Ver [Fase 3](#fase-3-despliegue-en-ec2).
+> ℹ️ En EC2, las credenciales AWS se gestionan mediante un **IAM Role** asignado a la instancia, sin necesidad de `aws configure`.
 
 ### Paso 4: Ejecutar FastAPI
 ```bash
@@ -436,36 +341,26 @@ Abrir en navegador: http://localhost:8000/docs
 
 ## Uso
 
-### Desde Swagger UI (Recomendado)
-
+### Desde Swagger UI
 1. Abrir http://localhost:8000/docs
-2. Seleccionar endpoint `/ask-visual` o `/ask-text`
-3. Click en "Try it out"
-4. Escribir pregunta en campo `question`
-5. Click en "Execute"
+2. Seleccionar endpoint
+3. Click en "Try it out" → rellenar parámetros → "Execute"
 
 ### Desde cURL
 ```bash
-# Ejemplo visual
 curl "http://localhost:8000/ask-visual?question=Top%2010%20géneros"
-
-# Ejemplo textual
 curl "http://localhost:8000/ask-text?question=¿Cuántos%20juegos%20hay?"
 ```
 
 ### Desde Python
 ```python
-import requests
+import requests, base64
 
-# Ask Visual
 response = requests.get(
     "http://localhost:8000/ask-visual",
     params={"question": "Top 10 géneros con más juegos"}
 )
 data = response.json()
-
-# Decodificar imagen base64
-import base64
 img_bytes = base64.b64decode(data['chart_base64'])
 with open('chart.png', 'wb') as f:
     f.write(img_bytes)
@@ -474,84 +369,78 @@ with open('chart.png', 'wb') as f:
 ---
 
 ## Estructura del Proyecto
+
 ```
 rawg-aws-ml-analytics/
 │
 ├── etl/                                     # Scripts ETL
-│   ├── create_rawg_local_database.py        # Creación de esquema y tablas de rawg-db
-│   ├── lambda_daily_extract.py              # Extracción diaria desde API
-│   └── lambda_extract_rawg.py               # Extracción masiva de la API
-|   └── lambda_loader.py                     # Pipeline transformación JSON de S3 y carga en RDS, con trigger
-|   └── transform_rawg.py 
-|   |__ aws_lambda                           # Layers Lambda
-|       ├── boto3310/                 
-|       ├── lambda_loader_package/                
-│       └── psycopg2/                 
-│       └── requests/
-|       └── sqlalchemy/
-|       └── lambda-loader.zip
-|    
-├── models/                                  # Scripts modelado
-|   ├── text_to_sql_gemini.py                # Generación SQL con Gemini
-|   ├── predictor.py                         # Modelo predicción de éxito de un juego
-│   └── train.py                             # Entrenamiento modelo predicción
-│   
+│   ├── create_rawg_local_database.py
+│   ├── lambda_daily_extract.py
+│   ├── lambda_extract_rawg.py
+│   ├── lambda_loader.py
+│   ├── transform_rawg.py
+│   └── aws_lambda/                          # Layers Lambda
+│       ├── boto3310/
+│       ├── lambda_loader_package/
+│       ├── psycopg2/
+│       ├── requests/
+│       ├── sqlalchemy/
+│       └── lambda-loader.zip
+│
+├── models/                                  # Modelo ML
+│   ├── text_to_sql_gemini.py
+│   ├── predictor.py
+│   ├── train.py
+│   ├── xgb_success_model_*.pkl              # Modelo entrenado
+│   └── success_features.pkl                 # Features del modelo
+│
 ├── fast_api/                                # API REST
-│   ├── main.py                              # FastAPI endpoints
-│   ├── requirements.txt                     # Dependencias
-|   └── README.md                            # Docs de la API
+│   ├── main.py
+│   ├── requirements.txt
+│   └── README.md
 │
-├── docs/                                     # Documentación
-|   ├── screen_shots/                         # screen shots Lambdas y FasAPI
-│   ├── aws_deployments_instructions.md       # Instrucciones aws lambda_loader y lambda_daily_extract
-│   ├── database_schema_sql.md                # sql: esquema data base 
-│   ├── api_documentation.md                  # documentación FastAPI con los endpoints
-│   └── test_endpoints.txt                    # Preguntas preparadas para probar la FastAPI
+├── docs/
+│   ├── screen_shots/
+│   ├── aws_deployments_instructions.md      # Instrucciones detalladas EC2 + Lambda
+│   ├── database_schema_sql.md
+│   ├── api_documentation.md
+│   └── test_endpoints.txt
 │
-├── notebooks/                                # Jupyter Notebooks
-│   └── etl_notebooks/
-│   |   ├── 00_exploración_rawg.ipynb         # Análisis exploratorio
-│   |   ├── 01_extraccion_rawg.ipynb          # Desarrollo del pipeline
-|   |   ├── 02_validacion_datos_rawg.ipynb    # Desarrollo del pipeline
-│   |   ├── 03_transformacion_rawg            # Desarrollo del pipeline
-|   |   ├── 04_.create_database_local.ipynb   # Desarrollo del pipeline
-│   |   ├── 05_transf_load_rawg_local.ipynb   # Desarrollo del pipeline
-|   |   └── 06_trasf_load_rawg_aws.ipynb      # Desarrollo del pipeline
-|   |
-|   └── models_notebooks/
-|        ├──01_text_to_sql.ipynb              # Pruebas text_to_sql
-|        ├──02_feature_engineering.ipynb      # Features entrenamiento modelo predicción
-|        └──03_modelado.ipynb                 # Preprocesado y entrenamiento de modelo predicción
-|   
+├── notebooks/
+│   ├── etl_notebooks/                       # Pipeline ETL
+│   └── models_notebooks/                    # Feature engineering y modelado
 │
-├── utils/                                    # Utilidades
-|   ├──__init__.py                            
-│   └── aws_secrets.py                        # Helper para Secrets Manager (excluido de GitHub)
-│       
-├── sql/                                      # Scripts SQL
-│   ├── create_schema.sql                     # Creación del esquema
-|   ├── drop_schema.sql                       # Eliminación del esquema con todos los datos
-|   └── queries/                              # Queries analíticas
-│   
-│── .gitignore
-├── bootstrap.py                              # Configuración de paths del proyecto
-├── descripcion_rawg                          # Descripción de la propuesta del proyecto
-├── README.md
-└── requirements.txt                          # Dependencias del proyecto
+├── utils/
+│   ├── __init__.py
+│   └── aws_secrets.py                       # Helper Secrets Manager
+│
+├── sql/
+│   ├── create_schema.sql
+│   ├── drop_schema.sql
+│   └── queries/
+│
+├── bootstrap.py
+├── .gitignore
+├── requirements.txt
+└── README.md
 ```
 
 ---
 
 ## Seguridad
 
-- ✅ Solo permite queries `SELECT` (no `DROP`, `DELETE`, etc.)
-- ✅ Credenciales en AWS Secrets Manager
+- ✅ Solo permite queries `SELECT` (bloquea `DROP`, `DELETE`, `UPDATE`, `INSERT`)
+- ✅ Credenciales de BD gestionadas por AWS Secrets Manager
 - ✅ Validación de SQL antes de ejecutar
-- ✅ Conexiones SSL a RDS
-- ✅ Rate limiting en Lambda
-- ✅ Archivos sensibles excluidos de GitHub via `.gitignore`
 - ✅ Acceso a EC2 solo mediante par de claves `.pem`
 - ✅ Permisos AWS gestionados mediante IAM Roles (sin credenciales hardcodeadas)
+- ✅ Archivos sensibles excluidos de GitHub via `.gitignore`
+
+---
+
+## Limitaciones conocidas
+
+El modelo XGBoost usa **11 features** seleccionadas para evitar *data leakage*. Las más predictivas (`ratings_count`, `game_rating`, `engagement_score`) fueron excluidas por derivarse del target. Esto limita el poder discriminativo del modelo en casos límite, aunque el accuracy global es del **86%**. Ver `fast_api/README.md` para más detalle.
 
 ---
 
@@ -559,57 +448,42 @@ rawg-aws-ml-analytics/
 
 | Métrica | Valor |
 |---------|-------|
-| **Juegos en BD** | ~20,000 |
+| **Juegos en BD** | ~20.000 |
 | **Tablas** | 10 |
-| **Endpoints API** | 4 (predict, ask-visual, ask-visual-image, ask-text) |
-| **Modelos ML** | 2 (Gemini + HF) |
+| **Endpoints API** | 4 |
+| **Accuracy modelo** | 86% |
 | **Costo mensual AWS** | ~$15-30 |
 
 ---
 
 ## 🎓 Aprendizajes Clave
 
-- ✅ Arquitectura serverless en AWS
-- ✅ Integración de múltiples modelos de IA
-- ✅ Text-to-SQL dinámico con LLMs
-- ✅ FastAPI para APIs de ML
-- ✅ Manejo de seguridad en SQL
-- ✅ Visualización automática de datos
-- ✅ Despliegue de API en EC2 con Amazon Linux
-- ✅ Gestión de permisos AWS con IAM Roles
-- ✅ Resolución de incompatibilidades de versiones en entornos de producción
-- ✅ Transferencia segura de archivos con SCP
+- Arquitectura ETL serverless en AWS (Lambda + EventBridge + RDS)
+- Text-to-SQL dinámico con LLMs (Gemini AI)
+- Predicción ML con XGBoost y gestión de data leakage
+- Despliegue de API en EC2 con Amazon Linux
+- Gestión de permisos AWS con IAM Roles y Secrets Manager
+- Resolución de incompatibilidades de versiones en producción
 
 ---
 
 ## 📝 Notas
 
-- La API usa Gemini 2.5 Flash con límite de 1,500 requests/día (gratis)
-- Los gráficos se retornan en base64 PNG
-- El ETL se ejecuta automáticamente cada 24 horas
-- Esquema optimizado para consultas analíticas
-- La variable `GEMINI_API_KEY` debe añadirse a `~/.bashrc` en EC2 para que persista entre sesiones
-- El modelo XGBoost y `success_features.pkl` no están en GitHub — deben copiarse manualmente via SCP
+- Gemini 2.5 Flash: límite de 1.500 requests/día (gratuito)
+- La variable `GEMINI_API_KEY` debe exportarse en cada sesión SSH o añadirse a `~/.bashrc`
+- Instrucciones detalladas de despliegue en `docs/aws_deployments_instructions.md`
 
 ---
 
 ## Autora
 
-**Cristina Rodríguez Arroyo** - Data Science Bootcamp Student
--  Bootcamp AI & Data Science - Hack a Boss (2025-2026)
-
----
-
-## Licencia
-
-Este proyecto es parte de un bootcamp educativo.
+**Cristina Rodríguez Arroyo** — Data Science Bootcamp Student  
+Bootcamp AI & Data Science — Hack a Boss (2025-2026)
 
 ---
 
 ## Agradecimientos
 
-- [RAWG.io](https://rawg.io/) por proporcionar la API de videojuegos
-- AWS por la infraestructura serverless
+- [RAWG.io](https://rawg.io/) por la API de videojuegos
+- AWS por la infraestructura cloud
 - Hack a Boss por la formación en Data Science
-
----
