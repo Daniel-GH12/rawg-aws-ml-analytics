@@ -103,71 +103,13 @@ Sistema de análisis de datos de videojuegos que combina:
 
 ---
 
-## Fase 2: API Text-to-SQL y Predicción ML
-
-### URLs de acceso
-
-| Entorno | Swagger UI | ReDoc |
-|---------|-----------|-------|
-| **Local** | http://localhost:8000/docs | http://localhost:8000/redoc |
-| **EC2** | http://\<EC2-IP-PUBLICA\>:8000/docs | http://\<EC2-IP-PUBLICA\>:8000/redoc |
-
-> ⚠️ La IP pública de EC2 cambia en cada reinicio de la instancia.
+## Fase 2: API Text-to-SQL
 
 ### Endpoints
-
-#### POST `/predict`
-
-Predice si un videojuego será un éxito usando el modelo XGBoost entrenado.
-
-| URL | Entorno |
-|-----|---------|
-| `http://localhost:8000/predict` | Local |
-| `http://<EC2-IP-PUBLICA>:8000/predict` | EC2 |
-
-**Ejemplo:**
-```bash
-curl -X POST http://localhost:8000/predict \
-  -H "Content-Type: application/json" \
-  -d '{
-    "num_platforms": 5,
-    "num_stores": 3,
-    "num_genres": 2,
-    "num_tags": 10,
-    "years_since_release": 2,
-    "recency_score": 2,
-    "esrb_name": "Everyone",
-    "release_year": 2022,
-    "has_multiplayer": 1,
-    "has_singleplayer": 1,
-    "is_indie": 0
-  }'
-```
-
-**Respuesta:**
-```json
-{
-  "prediction": "Éxito",
-  "prediction_class": 1,
-  "probability_success": 0.87,
-  "probability_no_success": 0.13,
-  "confidence": "Alta",
-  "features_used": 11
-}
-```
-
-> ℹ️ Ver `fast_api/README.md` para detalles sobre las features, métricas del modelo y limitaciones conocidas.
-
----
 
 #### GET `/ask-visual`
 
 Pregunta en lenguaje natural → SQL → Gráfico
-
-| URL | Entorno |
-|-----|---------|
-| `http://localhost:8000/ask-visual` | Local |
-| `http://<EC2-IP-PUBLICA>:8000/ask-visual` | EC2 |
 
 **Ejemplo:**
 ```bash
@@ -185,23 +127,9 @@ GET /ask-visual?question=Top 10 géneros con más juegos
 }
 ```
 
-#### GET `/ask-visual-image`
-
-Igual que `/ask-visual` pero devuelve la imagen PNG directamente — se puede abrir en el navegador.
-
-| URL | Entorno |
-|-----|---------|
-| `http://localhost:8000/ask-visual-image` | Local |
-| `http://<EC2-IP-PUBLICA>:8000/ask-visual-image` | EC2 |
-
 #### GET `/ask-text`
 
 Pregunta en lenguaje natural → SQL → Respuesta textual
-
-| URL | Entorno |
-|-----|---------|
-| `http://localhost:8000/ask-text` | Local |
-| `http://<EC2-IP-PUBLICA>:8000/ask-text` | EC2 |
 
 **Ejemplo:**
 ```bash
@@ -276,13 +204,12 @@ pip install -r requirements.txt
 # 1. Clonar repositorio (rama específica)
 git clone -b cristina https://github.com/Daniel-GH12/rawg-aws-ml-analytics.git
 
-# 2. Exportar Gemini API Key directamente en la terminal
-export GEMINI_API_KEY=tu_api_key
-# Para que persista entre sesiones, añadir a ~/.bashrc:
+# 2. Configurar variable de entorno Gemini (persistente)
 echo 'export GEMINI_API_KEY=tu_api_key' >> ~/.bashrc
 source ~/.bashrc
 
-# 3. Copiar modelos via SCP (desde terminal local, no están en GitHub)
+# 3. Copiar archivos sensibles no versionados via SCP (desde local)
+scp -i "clave.pem" utils/aws_secrets.py ec2-user@<EC2-IP>:/home/ec2-user/rawg-aws-ml-analytics/utils/
 scp -i "clave.pem" models/xgb_success_model_*.pkl ec2-user@<EC2-IP>:/home/ec2-user/rawg-aws-ml-analytics/models/
 scp -i "clave.pem" models/success_features.pkl ec2-user@<EC2-IP>:/home/ec2-user/rawg-aws-ml-analytics/models/
 
@@ -291,7 +218,7 @@ cd rawg-aws-ml-analytics/fast_api
 uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-> ⚠️ Las credenciales de RDS **no se copian via SCP** — se obtienen automáticamente desde AWS Secrets Manager gracias al IAM Role asignado a la instancia. Ver sección [Conexión EC2 → RDS](#conexión-ec2--rds-postgresql).
+> ⚠️ La IP pública de EC2 cambia en cada reinicio de la instancia. Actualizar la URL de acceso en consecuencia.
 
 ### Conexión EC2 → RDS PostgreSQL
 
@@ -311,11 +238,10 @@ Las credenciales de RDS se gestionan a través de **AWS Secrets Manager**, sin a
 
 ### Acceso a la API en EC2
 
-| Swagger UI | http://\<EC2-IP-PUBLICA\>:8000/docs |
-|------------|-------------------------------------|
-| ReDoc | http://\<EC2-IP-PUBLICA\>:8000/redoc |
-
-> ⚠️ La IP pública cambia en cada reinicio de la instancia EC2.
+```
+Swagger UI:  http://<EC2-IP-PUBLICA>:8000/docs
+ReDoc:       http://<EC2-IP-PUBLICA>:8000/redoc
+```
 
 ### ⚠️ Dificultades encontradas y soluciones
 
@@ -400,29 +326,30 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### Paso 3: Configurar credenciales
-
-Las credenciales de la base de datos **no se almacenan en `.env`** ni en variables de entorno. Se obtienen automáticamente desde **AWS Secrets Manager** en cada conexión mediante `utils/aws_secrets.py`.
-
-Para que funcione necesitas:
-
-**Credenciales AWS configuradas** en tu entorno local:
+### Paso 3: Configurar Variables de Entorno
 ```bash
-# Opción A: AWS CLI
-aws configure
+# Copiar template
+cp .env.example .env
 
-# Opción B: Variables de entorno
-export AWS_ACCESS_KEY_ID=tu_access_key
-export AWS_SECRET_ACCESS_KEY=tu_secret_key
-export AWS_DEFAULT_REGION=eu-north-1
+# Editar .env con tus credenciales
+nano .env
 ```
 
-**Gemini API Key** exportada directamente en la terminal:
-```bash
-export GEMINI_API_KEY=tu_gemini_api_key
-```
+**Contenido de `.env`:**
+```env
+# Gemini API
+GEMINI_API_KEY=tu_gemini_api_key
 
-> ℹ️ En EC2, las credenciales AWS se gestionan mediante un **IAM Role** asignado a la instancia — sin necesidad de exportar `AWS_ACCESS_KEY_ID` ni `AWS_SECRET_ACCESS_KEY`. Ver [Fase 3](#fase-3-despliegue-en-ec2).
+# PostgreSQL RDS
+DB_HOST=tu-rds-endpoint.rds.amazonaws.com
+DB_NAME=videogames_db
+DB_USER=tu_usuario
+DB_PASSWORD=tu_password
+DB_SCHEMA=rawg
+
+# RAWG API (solo para ETL)
+RAWG_API_KEY=tu_rawg_api_key
+```
 
 ### Paso 4: Ejecutar FastAPI
 ```bash
@@ -561,7 +488,7 @@ rawg-aws-ml-analytics/
 |---------|-------|
 | **Juegos en BD** | ~20,000 |
 | **Tablas** | 10 |
-| **Endpoints API** | 4 (predict, ask-visual, ask-visual-image, ask-text) |
+| **Endpoints API** | 2 principales |
 | **Modelos ML** | 2 (Gemini + HF) |
 | **Costo mensual AWS** | ~$15-30 |
 
