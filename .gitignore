@@ -16,3 +16,7 @@ aws_secrets.py
 # Cualquier carpeta llamada notas_cris, en cualquier parte del repo
 **/notas_cris/
 
+# Entornos virtuales
+.venv/
+venv/
+env/

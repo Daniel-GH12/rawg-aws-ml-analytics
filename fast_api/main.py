@@ -206,7 +206,7 @@ class HealthResponse(BaseModel):
     status: str
     service: str
     version: str
-    model_loaded: bool
+    is_model_loaded: bool
     features_count: Optional[int]
 
 # ============================================================================
@@ -687,8 +687,8 @@ def health_check():
         status="healthy",
         service="rawg-ml-api",
         version="3.0.0",
-        model_loaded=ML_MODEL is not None,  # ← Añadir
-        features_count=len(MODEL_FEATURES) if MODEL_FEATURES else None  # ← Añadir
+        is_model_loaded=ML_MODEL is not None, 
+        features_count=len(MODEL_FEATURES) if MODEL_FEATURES else None 
     )
 
 
