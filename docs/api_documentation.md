@@ -3,7 +3,7 @@
 **Proyecto:** rawg-aws-ml-analytics  
 **Versión:** 3.0.0  
 **Framework:** FastAPI  
-**Autor:** Cristina  
+**Autora:** Cristina Rodríguez Arroyo 
 **Fecha:** Febrero 2026
 
 ---
@@ -48,7 +48,7 @@ Los datos provienen de la API pública [RAWG](https://rawg.io/apidocs) y están 
 | Generación SQL | Google Gemini API |
 | Base de datos | PostgreSQL (AWS RDS) |
 | Visualización | Matplotlib + Seaborn |
-| Despliegue | AWS EC2 (Ubuntu 22.04) |
+| Despliegue | AWS EC2 (Amazon Linux 2023) |
 | Servidor ASGI | Uvicorn |
 
 **Flujo general:**

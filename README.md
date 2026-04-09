@@ -252,7 +252,7 @@ curl "http://localhost:8000/ask-text?question=¿Cuál%20es%20el%20juego%20mejor%
 
 ```bash
 # 1. Clonar rama del proyecto
-git clone -b cristina https://github.com/Daniel-GH12/rawg-aws-ml-analytics.git
+git clone https://github.com/Daniel-GH12/rawg-aws-ml-analytics.git
 
 # 2. Instalar dependencias
 cd rawg-aws-ml-analytics/fast_api
@@ -304,7 +304,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 
 ### Paso 1: Clonar Repositorio
 ```bash
-git clone https://github.com/Daniel-GH12/rawg-aws-ml-analytics.git
+git clone https://github.com/CrisRguezA/rawg-aws-ml-analytics.git
 cd rawg-aws-ml-analytics
 ```
 
@@ -388,9 +388,9 @@ rawg-aws-ml-analytics/
 │       └── lambda-loader.zip
 │
 ├── models/                                  # Modelo ML
-│   ├── text_to_sql_gemini.py
-│   ├── predictor.py
-│   ├── train.py
+│   ├── text_to_sql_gemini.py                # Text-to-SQL con Gemini AI
+│   ├── db_connection.py                     # Conexión a PostgreSQL
+│   ├── __init__.py
 │   ├── xgb_success_model_*.pkl              # Modelo entrenado
 │   └── success_features.pkl                 # Features del modelo
 │
@@ -472,13 +472,16 @@ El modelo XGBoost usa **11 features** seleccionadas para evitar *data leakage*. 
 - Gemini 2.5 Flash: límite de 1.500 requests/día (gratuito)
 - La variable `GEMINI_API_KEY` debe exportarse en cada sesión SSH o añadirse a `~/.bashrc`
 - Instrucciones detalladas de despliegue en `docs/aws_deployments_instructions.md`
+- La lógica de predicción está integrada directamente en `fast_api/main.py`
+- El modelo fue entrenado en `notebooks/models_notebooks/03_modelado.ipynb` y exportado como `.pkl`
 
 ---
 
 ## Autora
 
-**Cristina Rodríguez Arroyo** — Data Science Bootcamp Student  
-Bootcamp AI & Data Science — Hack a Boss (2025-2026)
+**Cristina Rodríguez Arroyo**  
+AI Engineer en formación — Bootcamp AI & Data Science, Hack a Boss (2025-2026)  
+🔗 github.com/CrisRguezA
 
 ---
 

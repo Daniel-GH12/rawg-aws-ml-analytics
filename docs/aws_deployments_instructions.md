@@ -66,7 +66,7 @@ lambda-loader.zip/
 
 ```powershell
 # Ir al directorio del proyecto
-cd C:\Users\crisr\dev\rawg-aws-ml-analytics
+cd <ruta-local-del-proyecto>
 
 # Crear directorio temporal
 mkdir lambda_loader_package
@@ -264,7 +264,7 @@ sudo swapon /swapfile
 El repositorio es público, por lo que no requiere SSH. Clonar directamente la rama de trabajo:
 
 ```bash
-git clone -b cristina https://github.com/Daniel-GH12/rawg-aws-ml-analytics.git
+git clone https://github.com/CrisRguezA/rawg-aws-ml-analytics.git
 cd rawg-aws-ml-analytics/fast_api
 ```
 
@@ -279,7 +279,7 @@ Si GitHub solicita autenticación, usar un **Personal Access Token** (classic) c
 ### 4. Instalar dependencias
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements-api.txt
 ```
 
 > ⚠️ Usar `scikit-learn==1.5.2` — la versión 1.6.1 es incompatible con Python 3.9 de Amazon Linux 2023 (error `__sklearn_tags__`). Ver tabla de dificultades.
